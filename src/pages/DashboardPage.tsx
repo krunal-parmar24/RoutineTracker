@@ -8,7 +8,6 @@ import { appServices } from '../services/appServices';
 import {
   getCompletionHeatmap,
   getDashboardSummary,
-  getStreakStatistics,
   getTimelineRows,
 } from '../services/dashboardService';
 import SummaryCards from '../components/dashboard/SummaryCards';
@@ -83,7 +82,6 @@ function DashboardPage() {
     [timelineEntries, todos, selectedDate],
   );
 
-  const streakStatistics = useMemo(() => getStreakStatistics(allTodos), [allTodos]);
   const heatmap = useMemo(() => getCompletionHeatmap(allTodos), [allTodos]);
 
   const handleCreateTodo = async (payload: { title: string; description: string; routineEntryId: string }) => {
@@ -166,7 +164,7 @@ function DashboardPage() {
       </div>
 
       <div className="grid-2">
-        <StreakSummary streak={streakStatistics} heatmap={heatmap} />
+        <StreakSummary heatmap={heatmap} />
         <div />
       </div>
     </div>

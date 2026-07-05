@@ -1,8 +1,7 @@
-import type { HeatmapCell, StreakStatistics } from '../../services/dashboardService';
+import type { HeatmapCell } from '../../services/dashboardService';
 import { formatDisplayDate } from '../../utils/date';
 
 interface StreakSummaryProps {
-  streak: StreakStatistics;
   heatmap: HeatmapCell[];
 }
 
@@ -24,12 +23,7 @@ function buildColumns(heatmap: HeatmapCell[]): HeatmapCell[][] {
   return columns;
 }
 
-function getColumnMonth(column: HeatmapCell[]): number | null {
-  const dated = column.find((cell) => cell.date);
-  return dated?.date ? new Date(`${dated.date}T00:00:00`).getMonth() : null;
-}
-
-function StreakSummary({ streak, heatmap }: StreakSummaryProps) {
+function StreakSummary({ heatmap }: StreakSummaryProps) {
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();

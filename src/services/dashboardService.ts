@@ -65,7 +65,6 @@ export interface HeatmapCell {
   level: HeatmapLevel;
 }
 
-const MS_PER_DAY = 1000 * 60 * 60 * 24;
 // Streak stats and the heatmap both look back over the same rolling window, so the two
 // numbers shown together on the dashboard are always consistent with each other.
 const HEATMAP_WINDOW_DAYS = 371;
@@ -82,12 +81,6 @@ function addDays(dateKey: string, offset: number) {
   const date = new Date(`${dateKey}T00:00:00`);
   date.setDate(date.getDate() + offset);
   return buildDateKey(date);
-}
-
-function daysDifference(fromKey: string, toKey: string) {
-  const from = new Date(`${fromKey}T00:00:00`);
-  const to = new Date(`${toKey}T00:00:00`);
-  return Math.round((to.getTime() - from.getTime()) / MS_PER_DAY);
 }
 
 function isValidDateKey(dateKey: string) {
@@ -256,82 +249,6 @@ export function getProductivityAnalysis(todos: Todo[]): ProductivityAnalysis {
     averageCompletionRate,
     mostProductiveSlot: sortedSlots[0]?.slotLabel,
     leastProductiveSlot: sortedSlots[sortedSlots.length - 1]?.slotLabel,
-  };
-}
-
-export function getStreakStatistics(todos: Todo[]): StreakStatistics {
-  const todayKey = buildDateKey(new Date());
-  const earliestAllowedDay = addDays(todayKey, -(HEATMAP_WINDOW_DAYS - 1));
-  const dateStore = buildDailyCompletionMap(todos);
-
-  const taskDates = Array.from(dateStore.keys())
-    .filter((date) => date >= earliestAllowedDay && date <= todayKey)
-    .sort();
-  const perfectDates = taskDates.filter((date) => {
-    const entry = dateStore.get(date);
-    return entry?.completed === entry?.total;
-  });
-
-  const totalPerfectDays = perfectDates.length;
-  if (totalPerfectDays === 0) {
-    return {
-      hasStreak: false,
-      currentStreakCount: 0,
-      bestStreakCount: 0,
-      totalPerfectDays: 0,
-      longestGapDays: 0,
-      summaryMessage: 'Complete all tasks for a day to start your streak.',
-    };
-  }
-
-  let currentStreakCount = 0;
-  let currentStreakStartDate: string | undefined;
-  let cursor = todayKey;
-  for (let steps = 0; steps < HEATMAP_WINDOW_DAYS; steps += 1) {
-    const record = dateStore.get(cursor);
-    if (!record || record.completed !== record.total) {
-      break;
-    }
-    currentStreakCount += 1;
-    currentStreakStartDate = cursor;
-    cursor = addDays(cursor, -1);
-  }
-
-  const firstTaskDay = taskDates[0];
-  let bestStreakCount = 0;
-  let currentRun = 0;
-  cursor = firstTaskDay;
-
-  for (let steps = 0; steps < HEATMAP_WINDOW_DAYS && cursor <= todayKey; steps += 1) {
-    const record = dateStore.get(cursor);
-    if (record && record.completed === record.total) {
-      currentRun += 1;
-      if (currentRun > bestStreakCount) {
-        bestStreakCount = currentRun;
-      }
-    } else {
-      currentRun = 0;
-    }
-    cursor = addDays(cursor, 1);
-  }
-
-  let longestGapDays = 0;
-  for (let index = 1; index < perfectDates.length; index += 1) {
-    longestGapDays = Math.max(longestGapDays, daysDifference(perfectDates[index - 1], perfectDates[index]) - 1);
-  }
-
-  const lastCompletedDay = perfectDates[perfectDates.length - 1];
-  if (lastCompletedDay < todayKey) {
-    longestGapDays = Math.max(longestGapDays, daysDifference(lastCompletedDay, todayKey) - 1);
-  }
-
-  return {
-    hasStreak: true,
-    currentStreakCount,
-    bestStreakCount,
-    currentStreakStartDate,
-    totalPerfectDays,
-    longestGapDays,
   };
 }
 
