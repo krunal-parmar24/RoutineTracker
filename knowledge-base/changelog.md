@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-05 (bug fixes: toasts, soft delete, slider saves)
+- Added success and error toasts to every CRUD action that was previously silent (routine
+  entry save/delete, todo create), and wrapped previously un-caught repository calls in
+  try/catch so failures are always surfaced instead of failing silently.
+- Changed routine entry deletion from a hard delete to a soft delete (`RoutineEntry.deletedAt`).
+  Deleted entries are hidden from the routine editor and "assign a new todo" picker, but
+  their historical todos remain visible/trackable (e.g. on the dashboard timeline for dates
+  that already had a todo assigned).
+- Fixed a critical Supabase bug: `SupabaseRoutineRepository.saveRoutine` was deleting and
+  reinserting *all* routine entries for the routine on every save (not just the one changed),
+  which combined with the `ON DELETE CASCADE` foreign key was deleting unrelated todos on any
+  routine edit. Replaced with a diff-based upsert that only touches entries that actually
+  changed, and changed the FK to `ON DELETE RESTRICT` as a safety net.
+- Todo completion percentage is now edited via local slider state with an explicit Save
+  button, instead of writing to storage/Supabase on every slider drag tick.
+
 ## 2026-07-05 (Supabase integration)
 - Added `@supabase/supabase-js` and a lazily-initialized Supabase client
   (`src/integrations/supabaseClient.ts`).

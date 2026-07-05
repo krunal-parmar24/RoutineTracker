@@ -9,6 +9,8 @@ export interface RoutineEntry {
   description?: string;
   order: number;
   createdAt: string;
+  /** Soft-delete marker. Entries are never hard-deleted so todos referencing them stay trackable. */
+  deletedAt?: string;
 }
 
 export interface WeeklyRoutine {

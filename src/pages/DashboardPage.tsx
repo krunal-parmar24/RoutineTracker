@@ -60,6 +60,13 @@ function DashboardPage() {
 
   const routineEntries = useMemo(() => {
     return (routine?.entries ?? [])
+      .filter((entry) => entry.dayOfWeek === weekday.toLowerCase() && !entry.deletedAt)
+      .sort((a, b) => a.order - b.order);
+  }, [routine, weekday]);
+
+  // Includes soft-deleted entries so previously assigned todos remain visible in the timeline.
+  const timelineEntries = useMemo(() => {
+    return (routine?.entries ?? [])
       .filter((entry) => entry.dayOfWeek === weekday.toLowerCase())
       .sort((a, b) => a.order - b.order);
   }, [routine, weekday]);
@@ -70,8 +77,8 @@ function DashboardPage() {
   );
 
   const timelineRows = useMemo(
-    () => getTimelineRows(routineEntries, todos, selectedDate),
-    [routineEntries, todos, selectedDate],
+    () => getTimelineRows(timelineEntries, todos, selectedDate),
+    [timelineEntries, todos, selectedDate],
   );
 
   const streakStatistics = useMemo(() => getStreakStatistics(allTodos), [allTodos]);
@@ -105,10 +112,15 @@ function DashboardPage() {
       updatedAt: new Date().toISOString(),
     };
 
-    const savedTodo = await todoRepository.saveTodo(todo);
-    setTodos((current) => [...current, savedTodo]);
-    setAllTodos((current) => [...current, savedTodo]);
-    setShowForm(false);
+    try {
+      const savedTodo = await todoRepository.saveTodo(todo);
+      setTodos((current) => [...current, savedTodo]);
+      setAllTodos((current) => [...current, savedTodo]);
+      setShowForm(false);
+      showToast('Todo created.');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to create todo.');
+    }
   };
 
   return (

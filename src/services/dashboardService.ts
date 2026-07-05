@@ -124,19 +124,26 @@ export function getTimelineRows(routineEntries: RoutineEntry[], todos: Todo[], s
       const status = todo ? getDisplayStatus(completionPercentage, selectedDate, entry.endTime, now) : 'No Task Assigned';
 
       return {
-        routineEntryId: entry.id,
-        routineTimeLabel: `${entry.startTime}–${entry.endTime}`,
-        startTime: entry.startTime,
-        endTime: entry.endTime,
-        routineTitle: entry.title,
-        todo,
-        status,
-        completionPercentage,
-        isActive,
-        isPast,
-        isFuture,
+        isDeletedEntry: Boolean(entry.deletedAt),
+        row: {
+          routineEntryId: entry.id,
+          routineTimeLabel: `${entry.startTime}–${entry.endTime}`,
+          startTime: entry.startTime,
+          endTime: entry.endTime,
+          routineTitle: entry.title,
+          todo,
+          status,
+          completionPercentage,
+          isActive,
+          isPast,
+          isFuture,
+        },
       };
-    });
+    })
+    // Slots removed from the active routine still show if they have a historical todo,
+    // but are hidden once they have neither an assignment nor any tracked history.
+    .filter((item) => !item.isDeletedEntry || Boolean(item.row.todo))
+    .map((item) => item.row);
 }
 
 export function getDashboardSummary(routineEntries: RoutineEntry[], todos: Todo[], selectedDate: string, weekday: string): DashboardSummary {
@@ -200,6 +207,12 @@ export function getStreakStatistics(todos: Todo[]): StreakStatistics {
   const dateStore = new Map<string, { total: number; completed: number }>();
 
   for (const todo of todos) {
+    // Guard against malformed/corrupted date values (e.g. bad test data) that would
+    // otherwise make the loops below run for an unbounded number of iterations.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(todo.date) || Number.isNaN(new Date(`${todo.date}T00:00:00`).getTime())) {
+      continue;
+    }
+
     const existing = dateStore.get(todo.date) ?? { total: 0, completed: 0 };
     existing.total += 1;
     if (todo.completionPercentage >= 100) {
@@ -226,10 +239,13 @@ export function getStreakStatistics(todos: Todo[]): StreakStatistics {
     };
   }
 
+  // Safety cap: bounds worst-case loop iterations even if data spans an implausible date range.
+  const MAX_LOOKBACK_DAYS = 3650;
+
   let currentStreakCount = 0;
   let currentStreakStartDate: string | undefined;
   let cursor = todayKey;
-  while (true) {
+  for (let steps = 0; steps < MAX_LOOKBACK_DAYS; steps += 1) {
     const record = dateStore.get(cursor);
     if (!record || record.completed !== record.total) {
       break;
@@ -239,12 +255,13 @@ export function getStreakStatistics(todos: Todo[]): StreakStatistics {
     cursor = addDays(cursor, -1);
   }
 
-  const firstTaskDay = taskDates[0];
+  const earliestAllowedDay = addDays(todayKey, -MAX_LOOKBACK_DAYS);
+  const firstTaskDay = taskDates[0] < earliestAllowedDay ? earliestAllowedDay : taskDates[0];
   let bestStreakCount = 0;
   let currentRun = 0;
   cursor = firstTaskDay;
 
-  while (cursor <= todayKey) {
+  for (let steps = 0; steps < MAX_LOOKBACK_DAYS && cursor <= todayKey; steps += 1) {
     const record = dateStore.get(cursor);
     if (record && record.completed === record.total) {
       currentRun += 1;

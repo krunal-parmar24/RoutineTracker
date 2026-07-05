@@ -27,8 +27,12 @@ create table if not exists public.routine_entries (
   title text not null,
   description text,
   "order" integer not null default 0,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  deleted_at timestamptz
 );
+
+-- Backfill for databases created before this column existed.
+alter table public.routine_entries add column if not exists deleted_at timestamptz;
 
 create index if not exists routine_entries_routine_id_idx on public.routine_entries (routine_id);
 create index if not exists routine_entries_user_id_idx on public.routine_entries (user_id);
@@ -41,7 +45,7 @@ create table if not exists public.todos (
   user_id uuid not null references auth.users (id) on delete cascade,
   date date not null,
   weekday text not null,
-  routine_entry_id uuid not null references public.routine_entries (id) on delete cascade,
+  routine_entry_id uuid not null references public.routine_entries (id) on delete restrict,
   routine_time_label text not null,
   title text not null,
   description text,

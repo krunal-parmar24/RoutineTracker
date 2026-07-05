@@ -27,7 +27,9 @@ See `supabase/schema.sql` for the full script. Summary:
   `user_metadata` at sign-up rather than a separate profiles table.
 - `public.weekly_routines` - one row per user (`user_id` unique), holds `updated_at`.
 - `public.routine_entries` - day/time blocks, references `weekly_routines.id`, denormalizes
-  `user_id` for simpler Row Level Security.
+  `user_id` for simpler Row Level Security. Includes a `deleted_at` column for soft deletes;
+  `todos.routine_entry_id` uses `ON DELETE RESTRICT` (not cascade) so historical todos are
+  never destroyed by a routine change.
 - `public.todos` - date-specific snapshots, references `routine_entries.id`; a unique
   constraint on `(user_id, date, routine_entry_id)` enforces one todo per slot per date.
 - All tables have Row Level Security enabled with `auth.uid() = user_id` policies for

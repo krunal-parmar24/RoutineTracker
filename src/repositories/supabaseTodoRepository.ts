@@ -2,16 +2,15 @@ import { getSupabaseClient } from '../integrations/supabaseClient';
 import { mapTodoRow, todoToRow, type TodoRow } from './supabaseMappers';
 import type { TodoRepository } from './todoRepository';
 import type { Todo } from '../types/todo';
+import { withTimeout } from '../utils/withTimeout';
 
 const TODO_COLUMNS = 'id, user_id, date, weekday, routine_entry_id, routine_time_label, title, description, completion_percentage, created_at, updated_at';
 
 export class SupabaseTodoRepository implements TodoRepository {
   async getByDate(userId: string, date: string): Promise<Todo[]> {
-    const { data, error } = await getSupabaseClient()
-      .from('todos')
-      .select(TODO_COLUMNS)
-      .eq('user_id', userId)
-      .eq('date', date);
+    const { data, error } = await withTimeout(
+      getSupabaseClient().from('todos').select(TODO_COLUMNS).eq('user_id', userId).eq('date', date),
+    );
 
     if (error) {
       throw new Error(error.message);
@@ -20,7 +19,7 @@ export class SupabaseTodoRepository implements TodoRepository {
   }
 
   async getAll(userId: string): Promise<Todo[]> {
-    const { data, error } = await getSupabaseClient().from('todos').select(TODO_COLUMNS).eq('user_id', userId);
+    const { data, error } = await withTimeout(getSupabaseClient().from('todos').select(TODO_COLUMNS).eq('user_id', userId));
 
     if (error) {
       throw new Error(error.message);
@@ -29,12 +28,9 @@ export class SupabaseTodoRepository implements TodoRepository {
   }
 
   async getById(userId: string, todoId: string): Promise<Todo | undefined> {
-    const { data, error } = await getSupabaseClient()
-      .from('todos')
-      .select(TODO_COLUMNS)
-      .eq('user_id', userId)
-      .eq('id', todoId)
-      .maybeSingle<TodoRow>();
+    const { data, error } = await withTimeout(
+      getSupabaseClient().from('todos').select(TODO_COLUMNS).eq('user_id', userId).eq('id', todoId).maybeSingle<TodoRow>(),
+    );
 
     if (error) {
       throw new Error(error.message);
@@ -43,11 +39,9 @@ export class SupabaseTodoRepository implements TodoRepository {
   }
 
   async saveTodo(todo: Todo): Promise<Todo> {
-    const { data, error } = await getSupabaseClient()
-      .from('todos')
-      .insert(todoToRow(todo))
-      .select(TODO_COLUMNS)
-      .single<TodoRow>();
+    const { data, error } = await withTimeout(
+      getSupabaseClient().from('todos').insert(todoToRow(todo)).select(TODO_COLUMNS).single<TodoRow>(),
+    );
 
     if (error) {
       if (error.code === '23505') {
@@ -60,13 +54,15 @@ export class SupabaseTodoRepository implements TodoRepository {
   }
 
   async updateTodo(todo: Todo): Promise<Todo> {
-    const { data, error } = await getSupabaseClient()
-      .from('todos')
-      .update(todoToRow(todo))
-      .eq('id', todo.id)
-      .eq('user_id', todo.userId)
-      .select(TODO_COLUMNS)
-      .single<TodoRow>();
+    const { data, error } = await withTimeout(
+      getSupabaseClient()
+        .from('todos')
+        .update(todoToRow(todo))
+        .eq('id', todo.id)
+        .eq('user_id', todo.userId)
+        .select(TODO_COLUMNS)
+        .single<TodoRow>(),
+    );
 
     if (error) {
       throw new Error(error.message);
@@ -76,7 +72,7 @@ export class SupabaseTodoRepository implements TodoRepository {
   }
 
   async deleteTodo(userId: string, todoId: string): Promise<void> {
-    const { error } = await getSupabaseClient().from('todos').delete().eq('user_id', userId).eq('id', todoId);
+    const { error } = await withTimeout(getSupabaseClient().from('todos').delete().eq('user_id', userId).eq('id', todoId));
     if (error) {
       throw new Error(error.message);
     }

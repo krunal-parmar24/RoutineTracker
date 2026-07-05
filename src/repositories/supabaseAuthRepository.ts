@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '../integrations/supabaseClient';
 import type { AuthRepository } from './authRepository';
 import type { AuthSession, LoginCredentials, SignupCredentials, User } from '../types/auth';
+import { withTimeout } from '../utils/withTimeout';
 
 function toUser(supabaseUser: { id: string; email?: string | null; created_at: string; user_metadata?: Record<string, unknown> }): User {
   return {
@@ -13,10 +14,12 @@ function toUser(supabaseUser: { id: string; email?: string | null; created_at: s
 
 export class SupabaseAuthRepository implements AuthRepository {
   async login(credentials: LoginCredentials): Promise<User | null> {
-    const { data, error } = await getSupabaseClient().auth.signInWithPassword({
-      email: credentials.email,
-      password: credentials.password,
-    });
+    const { data, error } = await withTimeout(
+      getSupabaseClient().auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password,
+      }),
+    );
 
     if (error || !data.user) {
       return null;
@@ -26,11 +29,13 @@ export class SupabaseAuthRepository implements AuthRepository {
   }
 
   async signup(credentials: SignupCredentials): Promise<User> {
-    const { data, error } = await getSupabaseClient().auth.signUp({
-      email: credentials.email,
-      password: credentials.password,
-      options: credentials.name ? { data: { name: credentials.name } } : undefined,
-    });
+    const { data, error } = await withTimeout(
+      getSupabaseClient().auth.signUp({
+        email: credentials.email,
+        password: credentials.password,
+        options: credentials.name ? { data: { name: credentials.name } } : undefined,
+      }),
+    );
 
     if (error) {
       throw new Error(error.message);
@@ -44,16 +49,16 @@ export class SupabaseAuthRepository implements AuthRepository {
   }
 
   async logout(): Promise<void> {
-    await getSupabaseClient().auth.signOut();
+    await withTimeout(getSupabaseClient().auth.signOut());
   }
 
   async getSession(): Promise<AuthSession> {
-    const { data } = await getSupabaseClient().auth.getSession();
+    const { data } = await withTimeout(getSupabaseClient().auth.getSession());
     return { userId: data.session?.user.id ?? null };
   }
 
   async getCurrentUser(): Promise<User | null> {
-    const { data } = await getSupabaseClient().auth.getUser();
+    const { data } = await withTimeout(getSupabaseClient().auth.getUser());
     return data.user ? toUser(data.user) : null;
   }
 

@@ -14,6 +14,8 @@ function TodoDetailPage() {
   const { todoId } = useParams();
   const navigate = useNavigate();
   const [todo, setTodo] = useState<Todo | null>(null);
+  const [draftPercentage, setDraftPercentage] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +33,7 @@ function TodoDetailPage() {
           setTodo(null);
         } else {
           setTodo(loaded);
+          setDraftPercentage(loaded.completionPercentage);
         }
       } catch {
         setError('Unable to load todo details.');
@@ -42,18 +45,27 @@ function TodoDetailPage() {
     loadTodo();
   }, [user?.id, todoId]);
 
-  const handleCompletionChange = async (value: number) => {
-    if (!todo || isPastTodo(todo)) {
+  const handleSaveCompletion = async () => {
+    if (!todo || isPastTodo(todo) || draftPercentage === todo.completionPercentage) {
       return;
     }
 
-    const updated: Todo = {
-      ...todo,
-      completionPercentage: value,
-      updatedAt: new Date().toISOString(),
-    };
-    const saved = await todoRepository.updateTodo(updated);
-    setTodo(saved);
+    setIsSaving(true);
+    try {
+      const updated: Todo = {
+        ...todo,
+        completionPercentage: draftPercentage,
+        updatedAt: new Date().toISOString(),
+      };
+      const saved = await todoRepository.updateTodo(updated);
+      setTodo(saved);
+      setDraftPercentage(saved.completionPercentage);
+      showToast('Todo progress saved.');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to save progress.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (loading) {
@@ -135,16 +147,26 @@ function TodoDetailPage() {
           </div>
           <div className="summary-card" style={{ marginTop: '16px' }}>
             <span className="summary-label">Completion percentage</span>
-            <strong className="summary-value">{todo.completionPercentage}%</strong>
+            <strong className="summary-value">{draftPercentage}%</strong>
             <input
               type="range"
               min="0"
               max="100"
-              value={todo.completionPercentage}
-              disabled={isPastTodo(todo)}
-              onChange={(event) => handleCompletionChange(Number(event.target.value))}
+              value={draftPercentage}
+              disabled={isPastTodo(todo) || isSaving}
+              onChange={(event) => setDraftPercentage(Number(event.target.value))}
               style={{ width: '100%', marginTop: '16px' }}
             />
+            <div className="button-row" style={{ marginTop: '12px' }}>
+              <button
+                type="button"
+                className="button button-primary"
+                disabled={isPastTodo(todo) || isSaving || draftPercentage === todo.completionPercentage}
+                onClick={handleSaveCompletion}
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
           </div>
         </div>
       </section>

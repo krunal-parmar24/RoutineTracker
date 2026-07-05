@@ -14,6 +14,8 @@
    - Each day can contain multiple entries.
    - Entries include start time, end time, title, and optional description.
    - Support create, edit, delete, and reorder.
+   - Deleting an entry is a soft delete: it disappears from the routine editor and from
+     new-todo assignment, but any todos already tracked against it remain visible.
    - Detect overlaps and duplicate time entries.
    - Weekly routine repeats automatically each week.
 

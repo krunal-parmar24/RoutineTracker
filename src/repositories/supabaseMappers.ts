@@ -12,6 +12,7 @@ export interface RoutineEntryRow {
   description: string | null;
   order: number;
   created_at: string;
+  deleted_at: string | null;
 }
 
 export interface TodoRow {
@@ -38,6 +39,7 @@ export function mapRoutineEntryRow(row: RoutineEntryRow): RoutineEntry {
     description: row.description ?? undefined,
     order: row.order,
     createdAt: row.created_at,
+    deletedAt: row.deleted_at ?? undefined,
   };
 }
 
@@ -57,6 +59,7 @@ export function routineEntryToRow(
     description: entry.description ?? null,
     order: entry.order,
     created_at: entry.createdAt,
+    deleted_at: entry.deletedAt ?? null,
   };
 }
 

@@ -15,6 +15,7 @@
 - description?: string
 - order: number
 - createdAt: string
+- deletedAt?: string (soft-delete marker; entries are never hard-deleted)
 
 ## WeeklyRoutine
 - id: string

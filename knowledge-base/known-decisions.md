@@ -22,3 +22,10 @@
 - The unique slot-per-date rule ("a routine slot can only hold one todo for a given date") is
   enforced both in the UI (`canAssignTodo`) and at the database level with a unique constraint
   on `(user_id, date, routine_entry_id)`.
+- Routine entries are soft-deleted (`deletedAt` timestamp), never hard-deleted: this keeps
+  historical todos assigned to a removed slot intact and trackable, and avoids the Supabase
+  foreign key cascade wiping unrelated todos. Deleted entries are hidden from the routine
+  editor and from "assign a new todo" pickers, but still render on the dashboard timeline for
+  any date that already has a todo against them.
+- Todo completion percentage is edited via local slider state plus an explicit Save button,
+  not on every slider tick, to avoid firing an API/database write per drag movement.

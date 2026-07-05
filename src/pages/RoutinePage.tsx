@@ -36,7 +36,9 @@ function RoutinePage() {
 
   const entriesByDay = useMemo(() => {
     return DAYS.reduce<Record<DayOfWeek, RoutineEntry[]>>((accumulator, day) => {
-      accumulator[day] = (routine?.entries ?? []).filter((entry) => entry.dayOfWeek === day).sort((a, b) => a.order - b.order);
+      accumulator[day] = (routine?.entries ?? [])
+        .filter((entry) => entry.dayOfWeek === day && !entry.deletedAt)
+        .sort((a, b) => a.order - b.order);
       return accumulator;
     }, {
       monday: [],
@@ -55,7 +57,7 @@ function RoutinePage() {
     }
 
     const nextEntries = [...(routine?.entries ?? [])];
-    const currentDayEntries = nextEntries.filter((item) => item.dayOfWeek === entry.dayOfWeek);
+    const currentDayEntries = nextEntries.filter((item) => item.dayOfWeek === entry.dayOfWeek && !item.deletedAt);
     const validation = validateRoutineEntries(
       buildComparableEntries(
         currentDayEntries,
@@ -91,10 +93,15 @@ function RoutinePage() {
       updatedAt: new Date().toISOString(),
     };
 
-    const savedRoutine = await repository.saveRoutine(nextRoutine);
-    setRoutine(savedRoutine);
-    setIsEditing(false);
-    setDraftEntry(null);
+    try {
+      const savedRoutine = await repository.saveRoutine(nextRoutine);
+      setRoutine(savedRoutine);
+      setIsEditing(false);
+      setDraftEntry(null);
+      showToast(draftEntry ? 'Routine entry updated.' : 'Routine entry added.');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to save routine entry.');
+    }
   };
 
   const deleteEntry = async (entryId: string) => {
@@ -102,20 +109,28 @@ function RoutinePage() {
       return;
     }
 
-    const confirmed = window.confirm('Delete this routine entry? This cannot be undone.');
+    const confirmed = window.confirm('Delete this routine entry? Existing todos for it will still be trackable.');
     if (!confirmed) {
       return;
     }
 
-    const updatedEntries = routine.entries.filter((entry) => entry.id !== entryId);
+    // Soft delete: keep the entry (and its history) so previously assigned todos remain trackable.
+    const updatedEntries = routine.entries.map((entry) =>
+      entry.id === entryId ? { ...entry, deletedAt: new Date().toISOString() } : entry,
+    );
     const nextRoutine: WeeklyRoutine = {
       ...routine,
       entries: updatedEntries,
       updatedAt: new Date().toISOString(),
     };
 
-    const savedRoutine = await repository.saveRoutine(nextRoutine);
-    setRoutine(savedRoutine);
+    try {
+      const savedRoutine = await repository.saveRoutine(nextRoutine);
+      setRoutine(savedRoutine);
+      showToast('Routine entry deleted.');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to delete routine entry.');
+    }
   };
 
   return (
