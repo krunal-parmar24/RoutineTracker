@@ -8,7 +8,6 @@ function LoginPage() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
-  const [infoMessage, setInfoMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, signup } = useAuthContext();
   const navigate = useNavigate();
@@ -16,15 +15,12 @@ function LoginPage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
-    setInfoMessage('');
     setIsSubmitting(true);
 
     try {
       if (isSignup) {
         await signup({ email, password, name });
-        setInfoMessage(
-          'Account created successfully. Please check your email and verify your account using the link we sent. After verification, return here to log in.',
-        );
+        navigate('/');
         return;
       }
 
@@ -37,13 +33,7 @@ function LoginPage() {
       navigate('/');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Authentication failed.';
-      if (message.toLowerCase().includes('email rate limit exceeded')) {
-        setError(
-          'Too many verification emails have been sent to this address. Please wait a few minutes and try again, or use login if you already registered.',
-        );
-      } else {
-        setError(message);
-      }
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -77,7 +67,6 @@ function LoginPage() {
           </div>
 
           {error ? <p className="alert" style={{ background: '#fef2f2', borderColor: '#fecaca', color: '#991b1b' }}>{error}</p> : null}
-          {infoMessage ? <p className="alert" style={{ background: '#ecfdf5', borderColor: '#bbf7d0', color: '#166534' }}>{infoMessage}</p> : null}
 
           <div className="button-row" style={{ marginTop: '12px' }}>
             <button type="submit" className="button button-primary" disabled={isSubmitting}>
@@ -87,12 +76,6 @@ function LoginPage() {
               {isSignup ? 'Already have an account' : 'Need an account?'}
             </button>
           </div>
-
-          {isSignup ? (
-            <p className="small-text" style={{ marginTop: '16px' }}>
-              If you already signed up, please use login instead of resending another verification email.
-            </p>
-          ) : null}
         </form>
       </div>
     </div>

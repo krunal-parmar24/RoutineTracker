@@ -10,13 +10,13 @@ export interface RoutineRepository {
 export class LocalStorageRoutineRepository implements RoutineRepository {
   async getRoutine(userId: string): Promise<WeeklyRoutine | null> {
     const data = readStorageData();
-    const existing = data.routines.find((entry) => (entry as WeeklyRoutine).userId === userId) as WeeklyRoutine | undefined;
+    const existing = data.routines.find((entry) => entry.userId === userId);
     return existing ?? null;
   }
 
   async saveRoutine(routine: WeeklyRoutine): Promise<WeeklyRoutine> {
     const data = readStorageData();
-    const existingIndex = data.routines.findIndex((entry) => (entry as WeeklyRoutine).userId === routine.userId);
+    const existingIndex = data.routines.findIndex((entry) => entry.userId === routine.userId);
 
     if (existingIndex >= 0) {
       data.routines[existingIndex] = routine;

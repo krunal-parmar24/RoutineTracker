@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import RoutineEntryForm from '../components/routine/RoutineEntryForm';
 import Modal from '../components/ui/Modal';
+import { useToast } from '../components/ui/ToastProvider';
 import { useAuthContext } from '../context/AuthContext';
-import { validateRoutineEntries } from '../services/routineService';
+import { buildComparableEntries, validateRoutineEntries } from '../services/routineService';
 import { appServices } from '../services/appServices';
 import type { DayOfWeek, RoutineEntry, WeeklyRoutine } from '../types/routine';
 
@@ -11,6 +12,7 @@ const repository = appServices.routineRepository;
 
 function RoutinePage() {
   const { user } = useAuthContext();
+  const { showToast } = useToast();
   const [routine, setRoutine] = useState<WeeklyRoutine | null>(null);
   const [activeDay, setActiveDay] = useState<DayOfWeek>('monday');
   const [isEditing, setIsEditing] = useState(false);
@@ -21,10 +23,16 @@ function RoutinePage() {
       return;
     }
 
-    repository.getRoutine(user.id).then((loadedRoutine) => {
-      setRoutine(loadedRoutine);
-    });
-  }, [user?.id]);
+    (async () => {
+      try {
+        const loadedRoutine = await repository.getRoutine(user.id);
+        setRoutine(loadedRoutine);
+      } catch (err) {
+        console.error('Failed loading routine', err);
+        showToast(err instanceof Error ? err.message : 'Failed to load routine.');
+      }
+    })();
+  }, [user?.id, showToast]);
 
   const entriesByDay = useMemo(() => {
     return DAYS.reduce<Record<DayOfWeek, RoutineEntry[]>>((accumulator, day) => {
@@ -48,13 +56,16 @@ function RoutinePage() {
 
     const nextEntries = [...(routine?.entries ?? [])];
     const currentDayEntries = nextEntries.filter((item) => item.dayOfWeek === entry.dayOfWeek);
-    const validation = validateRoutineEntries([
-      ...currentDayEntries.map((item) => ({ title: item.title, startTime: item.startTime, endTime: item.endTime })),
-      { title: entry.title, startTime: entry.startTime, endTime: entry.endTime },
-    ]);
+    const validation = validateRoutineEntries(
+      buildComparableEntries(
+        currentDayEntries,
+        { title: entry.title, startTime: entry.startTime, endTime: entry.endTime },
+        draftEntry?.id,
+      ),
+    );
 
     if (!validation.isValid) {
-      window.alert(validation.message ?? 'Invalid routine entry.');
+      showToast(validation.message ?? 'Invalid routine entry.');
       return;
     }
 
@@ -88,6 +99,11 @@ function RoutinePage() {
 
   const deleteEntry = async (entryId: string) => {
     if (!routine || !user?.id) {
+      return;
+    }
+
+    const confirmed = window.confirm('Delete this routine entry? This cannot be undone.');
+    if (!confirmed) {
       return;
     }
 

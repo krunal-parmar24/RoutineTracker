@@ -33,6 +33,7 @@
 5. History
    - Users can view prior dates.
    - Historical todos must remain unchanged even if the weekly routine is edited later.
+   - Todos dated before today are read-only: editing completion percentage and deleting are both disabled once the date has passed.
 
 6. User data isolation
    - Each user sees only their own routine and todos.
@@ -43,9 +44,11 @@
 - Strongly typed.
 - Reusable components and shared logic.
 
+## Resolved Requirements
+- Sign-up auto-logs the user in immediately after account creation (no email verification step exists in phase 1).
+- Historical todos (date before today) cannot be edited or deleted; only today's and future todos remain editable.
+
 ## Missing or Clarifying Requirements
-- Whether sign-up should auto-login immediately.
-- Whether users can edit or delete historical todos.
 - Whether timezone should be local-device based or fixed.
 - Whether routine entries should be stored as a weekly template only or also as day-specific snapshots.
 - Whether empty states for first-time users should include onboarding guidance.

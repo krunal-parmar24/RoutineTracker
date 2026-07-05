@@ -36,7 +36,7 @@
 - Handle missing or corrupted data gracefully.
 
 ## Phase 9 - Testing
-- Add unit and integration tests around validation, repositories, and route guards.
+- Deferred by decision: this project does not currently maintain automated test files; verify behavior manually instead.
 
 ## Phase 10 - Supabase Migration
 - Replace the storage adapter while keeping the rest of the app mostly unchanged.

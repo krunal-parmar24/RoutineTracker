@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import TodoForm from '../components/todo/TodoForm';
 import Modal from '../components/ui/Modal';
+import { useToast } from '../components/ui/ToastProvider';
 import { useAuthContext } from '../context/AuthContext';
 import { buildRoutineTimeLabel, canAssignTodo } from '../services/todoService';
 import { appServices } from '../services/appServices';
@@ -12,7 +13,6 @@ import {
 } from '../services/dashboardService';
 import SummaryCards from '../components/dashboard/SummaryCards';
 import TimelinePanel from '../components/dashboard/TimelinePanel';
-import ProductivityChart from '../components/dashboard/ProductivityChart';
 import StreakSummary from '../components/dashboard/StreakSummary';
 import type { WeeklyRoutine } from '../types/routine';
 import type { Todo } from '../types/todo';
@@ -22,6 +22,7 @@ const todoRepository = appServices.todoRepository;
 
 function DashboardPage() {
   const { user } = useAuthContext();
+  const { showToast } = useToast();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [routine, setRoutine] = useState<WeeklyRoutine | null>(null);
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -34,19 +35,24 @@ function DashboardPage() {
     }
 
     const loadDashboard = async () => {
-      const [loadedRoutine, loadedTodos, loadedAllTodos] = await Promise.all([
-        routineRepository.getRoutine(user.id),
-        todoRepository.getByDate(user.id, selectedDate),
-        todoRepository.getAll(user.id),
-      ]);
+      try {
+        const [loadedRoutine, loadedTodos, loadedAllTodos] = await Promise.all([
+          routineRepository.getRoutine(user.id),
+          todoRepository.getByDate(user.id, selectedDate),
+          todoRepository.getAll(user.id),
+        ]);
 
-      setRoutine(loadedRoutine);
-      setTodos(loadedTodos);
-      setAllTodos(loadedAllTodos);
+        setRoutine(loadedRoutine);
+        setTodos(loadedTodos);
+        setAllTodos(loadedAllTodos);
+      } catch (err) {
+        console.error('Failed loading dashboard', err);
+        showToast(err instanceof Error ? err.message : 'Failed to load dashboard.');
+      }
     };
 
     loadDashboard();
-  }, [selectedDate, user?.id]);
+  }, [selectedDate, user?.id, showToast]);
 
   const weekday = useMemo(() => {
     const date = new Date(`${selectedDate}T00:00:00`);
@@ -83,7 +89,7 @@ function DashboardPage() {
     }
 
     if (!canAssignTodo(todos, payload.routineEntryId)) {
-      window.alert('This routine slot already has a todo for this date.');
+      showToast('This routine slot already has a todo for this date.');
       return;
     }
 
@@ -153,8 +159,7 @@ function DashboardPage() {
         <TimelinePanel timelineItems={timelineRows} />
       </div>
 
-      <div className="grid-2">
-        <ProductivityChart analysis={productivityAnalysis} />
+      <div className="grid-1">
         <StreakSummary streak={streakStatistics} />
       </div>
 

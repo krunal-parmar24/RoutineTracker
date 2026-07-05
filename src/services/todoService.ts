@@ -20,3 +20,9 @@ export function buildRoutineTimeLabel(entry: Pick<RoutineEntry, 'startTime' | 'e
 export function canAssignTodo(todos: Todo[], routineEntryId: string) {
   return !todos.some((todo) => todo.routineEntryId === routineEntryId);
 }
+
+/** Historical todos (any date before today) must remain unchanged once created. */
+export function isPastTodo(todo: Pick<Todo, 'date'>, referenceDate: Date = new Date()): boolean {
+  const todayKey = referenceDate.toISOString().slice(0, 10);
+  return todo.date < todayKey;
+}

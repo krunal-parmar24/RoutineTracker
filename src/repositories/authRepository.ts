@@ -1,4 +1,5 @@
 import { readStorageData, writeStorageData } from '../storage/localStorageAdapter';
+import { hashPassword, verifyPassword } from '../utils/password';
 import type { AuthSession, LoginCredentials, SignupCredentials, User } from '../types/auth';
 
 export interface AuthRepository {
@@ -6,25 +7,30 @@ export interface AuthRepository {
   signup(credentials: SignupCredentials): Promise<User>;
   logout(): Promise<void>;
   getSession(): Promise<AuthSession>;
+  getCurrentUser(): Promise<User | null>;
   persistSession(userId: string | null): Promise<void>;
+}
+
+function toPublicUser(user: { id: string; email: string; name?: string; createdAt: string }): User {
+  return { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt };
 }
 
 export class LocalStorageAuthRepository implements AuthRepository {
   async login(credentials: LoginCredentials): Promise<User | null> {
     const data = readStorageData();
-    const user = data.users.find((entry) => entry.email === credentials.email && entry.password === credentials.password);
+    const user = data.users.find((entry) => entry.email === credentials.email);
 
     if (!user) {
       return null;
     }
 
+    const passwordMatches = await verifyPassword(credentials.password, { salt: user.passwordSalt, hash: user.passwordHash });
+    if (!passwordMatches) {
+      return null;
+    }
+
     await this.persistSession(user.id);
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      createdAt: user.createdAt,
-    };
+    return toPublicUser(user);
   }
 
   async signup(credentials: SignupCredentials): Promise<User> {
@@ -35,6 +41,7 @@ export class LocalStorageAuthRepository implements AuthRepository {
       throw new Error('An account with that email already exists.');
     }
 
+    const { salt, hash } = await hashPassword(credentials.password);
     const user: User = {
       id: crypto.randomUUID(),
       email: credentials.email,
@@ -45,7 +52,8 @@ export class LocalStorageAuthRepository implements AuthRepository {
     data.users.push({
       id: user.id,
       email: user.email,
-      password: credentials.password,
+      passwordHash: hash,
+      passwordSalt: salt,
       name: user.name,
       createdAt: user.createdAt,
     });
@@ -63,6 +71,17 @@ export class LocalStorageAuthRepository implements AuthRepository {
   async getSession(): Promise<AuthSession> {
     const data = readStorageData();
     return { userId: data.auth.currentUserId };
+  }
+
+  async getCurrentUser(): Promise<User | null> {
+    const data = readStorageData();
+    const userId = data.auth.currentUserId;
+    if (!userId) {
+      return null;
+    }
+
+    const user = data.users.find((entry) => entry.id === userId);
+    return user ? toPublicUser(user) : null;
   }
 
   async persistSession(userId: string | null): Promise<void> {

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { appServices } from '../services/appServices';
-import type { AuthSession, LoginCredentials, SignupCredentials, User } from '../types/auth';
+import type { LoginCredentials, SignupCredentials, User } from '../types/auth';
 
 interface AuthContextValue {
   user: User | null;
@@ -22,21 +22,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    authRepository.getSession().then((session: AuthSession) => {
-      if (!isMounted) {
-        return;
-      }
+    (async () => {
+      try {
+        const currentUser = await authRepository.getCurrentUser();
+        if (!isMounted) return;
 
-      if (session.userId) {
-        const storedUser = window.localStorage.getItem('routine-tracker:user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser) as User);
+        if (currentUser) {
+          setUser(currentUser);
           setIsAuthenticated(true);
         }
+      } catch (err) {
+        // If session resolution fails, ensure we stop loading and allow app to continue.
+        console.warn('[AuthProvider] getCurrentUser failed', err);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
-
-      setIsLoading(false);
-    });
+    })();
 
     return () => {
       isMounted = false;
@@ -46,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (credentials: LoginCredentials) => {
     const loggedInUser = await authRepository.login(credentials);
     if (loggedInUser) {
-      window.localStorage.setItem('routine-tracker:user', JSON.stringify(loggedInUser));
       setUser(loggedInUser);
       setIsAuthenticated(true);
       return loggedInUser;
@@ -57,13 +57,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = async (credentials: SignupCredentials) => {
     const createdUser = await authRepository.signup(credentials);
-    // Do not auto-authenticate until the user confirms their email via Supabase.
+    // Signup already establishes a session in the repository; reflect that here.
+    setUser(createdUser);
+    setIsAuthenticated(true);
     return createdUser;
   };
 
   const logout = async () => {
     await authRepository.logout();
-    window.localStorage.removeItem('routine-tracker:user');
     setUser(null);
     setIsAuthenticated(false);
   };

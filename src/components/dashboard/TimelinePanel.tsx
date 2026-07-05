@@ -16,7 +16,7 @@ const statusIcons: Record<string, string> = {
 
 function TimelinePanel({ timelineItems }: TimelinePanelProps) {
   const navigate = useNavigate();
-  const title = timelineItems.length > 0 ? 'Today&apos;s timeline' : 'No routine slots scheduled today';
+  const title = timelineItems.length > 0 ? "Today's timeline" : 'No routine slots scheduled today';
 
   const hasTodoItem = useMemo(() => timelineItems.some((item) => item.todo), [timelineItems]);
 

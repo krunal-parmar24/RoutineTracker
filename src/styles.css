@@ -760,6 +760,7 @@ a {
   }
 
   .empty-state-card {
+    margin-top: 22px;
     background: var(--surface-soft);
     border: 1px dashed rgba(148,163,184,0.7);
     border-radius: 20px;

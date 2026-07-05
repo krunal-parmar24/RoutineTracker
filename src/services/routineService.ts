@@ -47,6 +47,23 @@ export function validateRoutineEntries(entries: Array<Pick<RoutineEntry, 'startT
   return { isValid: true };
 }
 
+/**
+ * Builds the list of entries to validate for a given day, replacing (rather than
+ * duplicating) the entry currently being edited so it isn't compared against itself.
+ */
+export function buildComparableEntries(
+  existingEntries: Array<Pick<RoutineEntry, 'id' | 'title' | 'startTime' | 'endTime'>>,
+  candidate: Pick<RoutineEntry, 'title' | 'startTime' | 'endTime'>,
+  excludeEntryId?: string,
+): Array<Pick<RoutineEntry, 'title' | 'startTime' | 'endTime'>> {
+  return [
+    ...existingEntries
+      .filter((entry) => entry.id !== excludeEntryId)
+      .map((entry) => ({ title: entry.title, startTime: entry.startTime, endTime: entry.endTime })),
+    candidate,
+  ];
+}
+
 function toMinutes(time: string) {
   const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;

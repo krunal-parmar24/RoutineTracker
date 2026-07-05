@@ -8,4 +8,4 @@
 - Keep state normalized and avoid duplicated sources of truth.
 - Prefer immutable updates and pure helper functions.
 - Handle async and storage errors gracefully.
-- Write tests for validation rules, repositories, and route guards.
+- This project does not currently maintain automated test files; verify behavior manually and keep logic in small, readable, pure functions to make manual verification straightforward.

@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useToast } from '../components/ui/ToastProvider';
 import { useAuthContext } from '../context/AuthContext';
 import { appServices } from '../services/appServices';
+import { isPastTodo } from '../services/todoService';
 import type { Todo } from '../types/todo';
 
 const todoRepository = appServices.todoRepository;
 
 function TodoDetailPage() {
   const { user } = useAuthContext();
+  const { showToast } = useToast();
   const { todoId } = useParams();
   const navigate = useNavigate();
   const [todo, setTodo] = useState<Todo | null>(null);
@@ -40,7 +43,7 @@ function TodoDetailPage() {
   }, [user?.id, todoId]);
 
   const handleCompletionChange = async (value: number) => {
-    if (!todo) {
+    if (!todo || isPastTodo(todo)) {
       return;
     }
 
@@ -85,10 +88,37 @@ function TodoDetailPage() {
             <h2 className="section-title">{todo.title}</h2>
             <p className="section-text">Review and update progress for this scheduled task.</p>
           </div>
-          <button type="button" className="button button-secondary" onClick={() => navigate(-1)}>
-            Back
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              className="button button-danger"
+              disabled={isPastTodo(todo)}
+              title={isPastTodo(todo) ? 'Historical todos cannot be deleted.' : undefined}
+              onClick={async () => {
+                if (!todo || isPastTodo(todo)) return;
+                const confirmed = window.confirm('Delete this todo? This cannot be undone.');
+                if (!confirmed) return;
+                try {
+                  await todoRepository.deleteTodo(user?.id ?? '', todo.id);
+                  window.dispatchEvent(new CustomEvent('todo:deleted', { detail: { id: todo.id } }));
+                  showToast('Todo deleted.');
+                  navigate(-1);
+                } catch (err) {
+                  showToast(err instanceof Error ? err.message : 'Unable to delete todo.');
+                }
+              }}
+            >
+              Delete
+            </button>
+            <button type="button" className="button button-secondary" onClick={() => navigate(-1)}>
+              Back
+            </button>
+          </div>
         </div>
+
+        {isPastTodo(todo) ? (
+          <p className="alert" style={{ marginTop: '16px' }}>This todo is from a past date and is read-only.</p>
+        ) : null}
 
         <div style={{ marginTop: '18px' }}>
           <div className="summary-card">
@@ -111,6 +141,7 @@ function TodoDetailPage() {
               min="0"
               max="100"
               value={todo.completionPercentage}
+              disabled={isPastTodo(todo)}
               onChange={(event) => handleCompletionChange(Number(event.target.value))}
               style={{ width: '100%', marginTop: '16px' }}
             />
