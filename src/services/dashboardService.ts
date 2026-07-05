@@ -48,14 +48,27 @@ export interface StreakStatistics {
   hasStreak: boolean;
   currentStreakCount: number;
   bestStreakCount: number;
-  lastCompletedDay?: string;
   currentStreakStartDate?: string;
   totalPerfectDays: number;
   longestGapDays: number;
   summaryMessage?: string;
 }
 
+/** 0 = no todos or nothing completed (grey) .. 4 = 100% completed (darkest). */
+export type HeatmapLevel = 0 | 1 | 2 | 3 | 4;
+
+export interface HeatmapCell {
+  /** null for leading padding cells used to align the grid to week columns. */
+  date: string | null;
+  total: number;
+  completed: number;
+  level: HeatmapLevel;
+}
+
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
+// Streak stats and the heatmap both look back over the same rolling window, so the two
+// numbers shown together on the dashboard are always consistent with each other.
+const HEATMAP_WINDOW_DAYS = 371;
 
 function buildDateKey(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -75,6 +88,50 @@ function daysDifference(fromKey: string, toKey: string) {
   const from = new Date(`${fromKey}T00:00:00`);
   const to = new Date(`${toKey}T00:00:00`);
   return Math.round((to.getTime() - from.getTime()) / MS_PER_DAY);
+}
+
+function isValidDateKey(dateKey: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(dateKey) && !Number.isNaN(new Date(`${dateKey}T00:00:00`).getTime());
+}
+
+/** Groups todos by date, counting how many were planned vs. completed each day. */
+function buildDailyCompletionMap(todos: Todo[]): Map<string, { total: number; completed: number }> {
+  const dateStore = new Map<string, { total: number; completed: number }>();
+
+  for (const todo of todos) {
+    // Guard against malformed/corrupted date values (e.g. bad test data) that would
+    // otherwise make date-range loops elsewhere run for an unbounded number of iterations.
+    if (!isValidDateKey(todo.date)) {
+      continue;
+    }
+
+    const existing = dateStore.get(todo.date) ?? { total: 0, completed: 0 };
+    existing.total += 1;
+    if (todo.completionPercentage >= 100) {
+      existing.completed += 1;
+    }
+    dateStore.set(todo.date, existing);
+  }
+
+  return dateStore;
+}
+
+function computeHeatmapLevel(total: number, completed: number): HeatmapLevel {
+  if (total === 0 || completed === 0) {
+    return 0;
+  }
+
+  const ratio = completed / total;
+  if (ratio >= 1) {
+    return 4;
+  }
+  if (ratio > 0.66) {
+    return 3;
+  }
+  if (ratio > 0.33) {
+    return 2;
+  }
+  return 1;
 }
 
 function isSlotMissed(selectedDate: string, endTime: string, completionPercentage: number, now: Date) {
@@ -204,24 +261,12 @@ export function getProductivityAnalysis(todos: Todo[]): ProductivityAnalysis {
 
 export function getStreakStatistics(todos: Todo[]): StreakStatistics {
   const todayKey = buildDateKey(new Date());
-  const dateStore = new Map<string, { total: number; completed: number }>();
+  const earliestAllowedDay = addDays(todayKey, -(HEATMAP_WINDOW_DAYS - 1));
+  const dateStore = buildDailyCompletionMap(todos);
 
-  for (const todo of todos) {
-    // Guard against malformed/corrupted date values (e.g. bad test data) that would
-    // otherwise make the loops below run for an unbounded number of iterations.
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(todo.date) || Number.isNaN(new Date(`${todo.date}T00:00:00`).getTime())) {
-      continue;
-    }
-
-    const existing = dateStore.get(todo.date) ?? { total: 0, completed: 0 };
-    existing.total += 1;
-    if (todo.completionPercentage >= 100) {
-      existing.completed += 1;
-    }
-    dateStore.set(todo.date, existing);
-  }
-
-  const taskDates = Array.from(dateStore.keys()).filter((date) => date <= todayKey).sort();
+  const taskDates = Array.from(dateStore.keys())
+    .filter((date) => date >= earliestAllowedDay && date <= todayKey)
+    .sort();
   const perfectDates = taskDates.filter((date) => {
     const entry = dateStore.get(date);
     return entry?.completed === entry?.total;
@@ -239,13 +284,10 @@ export function getStreakStatistics(todos: Todo[]): StreakStatistics {
     };
   }
 
-  // Safety cap: bounds worst-case loop iterations even if data spans an implausible date range.
-  const MAX_LOOKBACK_DAYS = 3650;
-
   let currentStreakCount = 0;
   let currentStreakStartDate: string | undefined;
   let cursor = todayKey;
-  for (let steps = 0; steps < MAX_LOOKBACK_DAYS; steps += 1) {
+  for (let steps = 0; steps < HEATMAP_WINDOW_DAYS; steps += 1) {
     const record = dateStore.get(cursor);
     if (!record || record.completed !== record.total) {
       break;
@@ -255,13 +297,12 @@ export function getStreakStatistics(todos: Todo[]): StreakStatistics {
     cursor = addDays(cursor, -1);
   }
 
-  const earliestAllowedDay = addDays(todayKey, -MAX_LOOKBACK_DAYS);
-  const firstTaskDay = taskDates[0] < earliestAllowedDay ? earliestAllowedDay : taskDates[0];
+  const firstTaskDay = taskDates[0];
   let bestStreakCount = 0;
   let currentRun = 0;
   cursor = firstTaskDay;
 
-  for (let steps = 0; steps < MAX_LOOKBACK_DAYS && cursor <= todayKey; steps += 1) {
+  for (let steps = 0; steps < HEATMAP_WINDOW_DAYS && cursor <= todayKey; steps += 1) {
     const record = dateStore.get(cursor);
     if (record && record.completed === record.total) {
       currentRun += 1;
@@ -288,9 +329,36 @@ export function getStreakStatistics(todos: Todo[]): StreakStatistics {
     hasStreak: true,
     currentStreakCount,
     bestStreakCount,
-    lastCompletedDay,
     currentStreakStartDate,
     totalPerfectDays,
     longestGapDays,
   };
+}
+
+/**
+ * Builds a LeetCode/GitHub-style contribution grid for the last `totalDays` days
+ * (default ~18 weeks), padded at the start so cells align into 7-row week columns.
+ */
+export function getCompletionHeatmap(todos: Todo[], totalDays = HEATMAP_WINDOW_DAYS): HeatmapCell[] {
+  const todayKey = buildDateKey(new Date());
+  const dateStore = buildDailyCompletionMap(todos);
+
+  const days: HeatmapCell[] = [];
+  for (let offset = totalDays - 1; offset >= 0; offset -= 1) {
+    const dateKey = addDays(todayKey, -offset);
+    const record = dateStore.get(dateKey);
+    const total = record?.total ?? 0;
+    const completed = record?.completed ?? 0;
+    days.push({ date: dateKey, total, completed, level: computeHeatmapLevel(total, completed) });
+  }
+
+  const firstDayWeekday = new Date(`${days[0].date}T00:00:00`).getDay();
+  const padding: HeatmapCell[] = Array.from({ length: firstDayWeekday }, () => ({
+    date: null,
+    total: 0,
+    completed: 0,
+    level: 0,
+  }));
+
+  return [...padding, ...days];
 }

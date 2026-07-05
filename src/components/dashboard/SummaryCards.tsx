@@ -1,4 +1,5 @@
 import type { DashboardSummary } from '../../services/dashboardService';
+import { formatDisplayDate } from '../../utils/date';
 
 interface SummaryCardsProps {
   summary: DashboardSummary;
@@ -19,7 +20,7 @@ function SummaryCards({ summary }: SummaryCardsProps) {
       <div className="section-header">
         <div>
           <p className="meta-label">Today&apos;s summary</p>
-          <h2 className="section-title">{summary.selectedDate}</h2>
+          <h2 className="section-title">{formatDisplayDate(summary.selectedDate)}</h2>
           <p className="section-text">{summary.weekday}</p>
         </div>
       </div>

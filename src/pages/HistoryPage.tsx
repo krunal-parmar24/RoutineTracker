@@ -3,6 +3,7 @@ import { useAuthContext } from '../context/AuthContext';
 import { groupTodosByDate } from '../services/historyService';
 import { getTodoStatus } from '../services/todoService';
 import { appServices } from '../services/appServices';
+import { formatDisplayDate } from '../utils/date';
 import type { Todo } from '../types/todo';
 
 const todoRepository = appServices.todoRepository;
@@ -45,7 +46,7 @@ function HistoryPage() {
       ) : (
         historyGroups.map((group) => (
           <section key={group.date} className="history-card">
-            <h3 style={{ marginTop: 0 }}>{new Date(`${group.date}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</h3>
+            <h3 style={{ marginTop: 0 }}>{formatDisplayDate(group.date)}</h3>
             <div className="card-list">
               {group.todos.map((todo) => {
                 const status = getTodoStatus(todo.completionPercentage);

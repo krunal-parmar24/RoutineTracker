@@ -6,6 +6,7 @@ import { useAuthContext } from '../context/AuthContext';
 import { buildRoutineTimeLabel, canAssignTodo } from '../services/todoService';
 import { appServices } from '../services/appServices';
 import {
+  getCompletionHeatmap,
   getDashboardSummary,
   getStreakStatistics,
   getTimelineRows,
@@ -15,6 +16,7 @@ import TimelinePanel from '../components/dashboard/TimelinePanel';
 import StreakSummary from '../components/dashboard/StreakSummary';
 import type { WeeklyRoutine } from '../types/routine';
 import type { Todo } from '../types/todo';
+import { formatDisplayDate } from '../utils/date';
 
 const routineRepository = appServices.routineRepository;
 const todoRepository = appServices.todoRepository;
@@ -82,6 +84,7 @@ function DashboardPage() {
   );
 
   const streakStatistics = useMemo(() => getStreakStatistics(allTodos), [allTodos]);
+  const heatmap = useMemo(() => getCompletionHeatmap(allTodos), [allTodos]);
 
   const handleCreateTodo = async (payload: { title: string; description: string; routineEntryId: string }) => {
     if (!user?.id) {
@@ -148,14 +151,7 @@ function DashboardPage() {
 
         <div className="alert" style={{ marginTop: '20px' }}>
           <p className="alert-text" style={{ margin: 0 }}>
-            <strong>
-              {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-            </strong>{' '}
-            · {weekday}
+            <strong>{formatDisplayDate(selectedDate)}</strong> · {weekday}
           </p>
         </div>
 
@@ -169,14 +165,10 @@ function DashboardPage() {
         <TimelinePanel timelineItems={timelineRows} />
       </div>
 
-      <div className="grid-1">
-        <StreakSummary streak={streakStatistics} />
+      <div className="grid-2">
+        <StreakSummary streak={streakStatistics} heatmap={heatmap} />
+        <div />
       </div>
-
-      <section className="todo-card">
-        <h3 style={{ marginTop: 0 }}>Quick progress</h3>
-        <p className="section-text">Update completion status directly from a todo detail page or use the timeline for a focused schedule view.</p>
-      </section>
     </div>
   );
 }
