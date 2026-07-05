@@ -100,7 +100,7 @@ function TodoDetailPage() {
             <h2 className="section-title">{todo.title}</h2>
             <p className="section-text">Review and update progress for this scheduled task.</p>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="button-row">
             <button
               type="button"
               className="button button-danger"

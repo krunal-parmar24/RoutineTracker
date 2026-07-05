@@ -132,7 +132,7 @@ function DashboardPage() {
             <h2 className="section-title">Focus on today</h2>
             <p className="section-text">Pick a date, assign tasks to your routine, and track progress with a clean view.</p>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+          <div className="page-controls">
             <input
               type="date"
               value={selectedDate}

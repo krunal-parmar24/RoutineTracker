@@ -161,18 +161,16 @@ function RoutinePage() {
             <div className="card-list">
               {entriesByDay[activeDay].map((entry) => (
                 <div key={entry.id} className="entry-card card-compact">
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-                      <div>
-                        <p style={{ margin: '0 0 6px', fontWeight: 700 }}>{entry.startTime} – {entry.endTime}</p>
-                        <p style={{ margin: 0 }}>{entry.title}</p>
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        <button onClick={() => { setDraftEntry(entry); setIsEditing(true); }} className="button button-secondary">Edit</button>
-                        <button onClick={() => deleteEntry(entry.id)} className="button button-ghost" style={{ color: 'var(--danger)', borderColor: '#fee2e2' }}>Delete</button>
-                      </div>
+                  <div className="entry-card-body">
+                    <div className="entry-card-info">
+                      <p className="entry-card-time">{entry.startTime} – {entry.endTime}</p>
+                      <p className="entry-card-title">{entry.title}</p>
+                      {entry.description ? <p className="small-text" style={{ margin: 0 }}>{entry.description}</p> : null}
                     </div>
-                    {entry.description ? <p className="small-text" style={{ margin: 0 }}>{entry.description}</p> : null}
+                    <div className="entry-actions">
+                      <button onClick={() => { setDraftEntry(entry); setIsEditing(true); }} className="button button-secondary">Edit</button>
+                      <button onClick={() => deleteEntry(entry.id)} className="button button-danger">Delete</button>
+                    </div>
                   </div>
                 </div>
               ))}
