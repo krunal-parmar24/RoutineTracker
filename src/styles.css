@@ -764,22 +764,22 @@ a {
   }
 
   .heatmap-cell.level-1 {
-    background: #9be9a8;
+    background: #efeaff; /* very light brand */
     border-color: transparent;
   }
 
   .heatmap-cell.level-2 {
-    background: #40c463;
+    background: #d6ccff; /* light brand */
     border-color: transparent;
   }
 
   .heatmap-cell.level-3 {
-    background: #30a14e;
+    background: #a892ff; /* medium brand */
     border-color: transparent;
   }
 
   .heatmap-cell.level-4 {
-    background: #216e39;
+    background: var(--brand); /* primary brand color */
     border-color: transparent;
   }
 
