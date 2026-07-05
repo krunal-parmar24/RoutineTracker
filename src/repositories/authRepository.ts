@@ -9,6 +9,12 @@ export interface AuthRepository {
   getSession(): Promise<AuthSession>;
   getCurrentUser(): Promise<User | null>;
   persistSession(userId: string | null): Promise<void>;
+  /**
+   * Optional: subscribe to out-of-band auth state changes (e.g. Supabase token
+   * refresh/sign-out in another tab). Returns an unsubscribe function.
+   * Local storage auth has no external state source, so it is a no-op there.
+   */
+  onAuthStateChange?(callback: (user: User | null) => void): () => void;
 }
 
 function toPublicUser(user: { id: string; email: string; name?: string; createdAt: string }): User {

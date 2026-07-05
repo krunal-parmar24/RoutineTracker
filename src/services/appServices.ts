@@ -1,4 +1,4 @@
 import { createRepositoryContainer } from '../factories/repositoryFactory';
 
-// Use local storage repositories only.
-export const appServices = createRepositoryContainer('localStorage');
+// Provider is resolved from VITE_STORAGE_PROVIDER (defaults to 'localStorage').
+export const appServices = createRepositoryContainer();

@@ -38,6 +38,7 @@
 ## Phase 9 - Testing
 - Deferred by decision: this project does not currently maintain automated test files; verify behavior manually instead.
 
-## Phase 10 - Supabase Migration
-- Replace the storage adapter while keeping the rest of the app mostly unchanged.
-- Swap auth implementation behind the abstraction layer.
+## Phase 10 - Supabase Migration (implemented)
+- Storage adapter is swappable via `VITE_STORAGE_PROVIDER` env var; rest of the app is unchanged.
+- Auth, routine, and todo repositories all have Supabase implementations behind the same
+  interfaces used by local storage. See `supabase/schema.sql` and `architecture.md`.

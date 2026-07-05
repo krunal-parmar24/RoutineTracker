@@ -39,8 +39,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })();
 
+    // Keep in sync with out-of-band auth changes (e.g. Supabase token refresh,
+    // sign-out from another tab). No-op for repositories that don't support it.
+    const unsubscribe = authRepository.onAuthStateChange?.((nextUser) => {
+      if (!isMounted) return;
+      setUser(nextUser);
+      setIsAuthenticated(Boolean(nextUser));
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe?.();
     };
   }, []);
 

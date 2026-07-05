@@ -41,3 +41,26 @@ Implementations:
 - SupabaseTodoRepository
 
 This keeps domain behavior consistent while storage changes are isolated.
+
+## Supabase Integration (implemented)
+- `src/integrations/supabaseClient.ts` lazily builds a singleton Supabase client from
+  `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.
+- `src/factories/repositoryFactory.ts` resolves the active provider from
+  `VITE_STORAGE_PROVIDER` (`localStorage` default, or `supabase`) and returns the matching
+  repository set. No page, service, or hook code changes based on provider - they only depend
+  on the `AuthRepository`/`RoutineRepository`/`TodoRepository` interfaces.
+- `src/repositories/supabaseAuthRepository.ts`, `supabaseRoutineRepository.ts`,
+  `supabaseTodoRepository.ts` implement the same interfaces as their local storage
+  counterparts, using `@supabase/supabase-js` (Postgres tables + Supabase Auth).
+- `src/repositories/supabaseMappers.ts` converts between camelCase domain types and the
+  snake_case Postgres row shape.
+- Auth state changes (token refresh, sign-out in another tab) are pushed into `AuthContext`
+  via an optional `AuthRepository.onAuthStateChange()` subscription (no-op for local storage).
+- Supabase Auth manages password hashing/session storage itself; the custom local password
+  hashing utility (`src/utils/password.ts`) is only used by the local storage auth repository.
+- Row Level Security (Postgres policies) enforces per-user data isolation server-side, in
+  addition to the `userId` filtering already done in the local storage repositories.
+- See `supabase/schema.sql` for the full table/RLS/trigger definitions.
+- SupabaseTodoRepository
+
+This keeps domain behavior consistent while storage changes are isolated.

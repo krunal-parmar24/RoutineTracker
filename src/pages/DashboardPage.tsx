@@ -7,7 +7,6 @@ import { buildRoutineTimeLabel, canAssignTodo } from '../services/todoService';
 import { appServices } from '../services/appServices';
 import {
   getDashboardSummary,
-  getProductivityAnalysis,
   getStreakStatistics,
   getTimelineRows,
 } from '../services/dashboardService';
@@ -75,7 +74,6 @@ function DashboardPage() {
     [routineEntries, todos, selectedDate],
   );
 
-  const productivityAnalysis = useMemo(() => getProductivityAnalysis(allTodos), [allTodos]);
   const streakStatistics = useMemo(() => getStreakStatistics(allTodos), [allTodos]);
 
   const handleCreateTodo = async (payload: { title: string; description: string; routineEntryId: string }) => {
