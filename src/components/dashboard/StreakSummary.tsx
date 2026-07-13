@@ -11,7 +11,7 @@ function cellTitle(cell: HeatmapCell): string | undefined {
   if (!cell.date) {
     return undefined;
   }
-  const detail = cell.total > 0 ? `${cell.completed}/${cell.total} completed` : 'No tasks scheduled';
+  const detail = cell.total > 0 ? `${cell.percentage}% completed` : 'No tasks scheduled';
   return `${formatDisplayDate(cell.date)} — ${detail}`;
 }
 
@@ -36,7 +36,9 @@ function StreakSummary({ heatmap }: StreakSummaryProps) {
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
   });
 
-  const totalCompletions = monthHeatmap.reduce((sum, cell) => sum + cell.completed, 0);
+  const sumOfPercentages = monthHeatmap.reduce((sum, cell) => sum + cell.sumPercentage, 0);
+  const totalTodos = monthHeatmap.reduce((sum, cell) => sum + cell.total, 0);
+  const overallPercentage = totalTodos > 0 ? Math.round(sumOfPercentages / totalTodos) : 0;
   const totalActiveDays = monthHeatmap.filter((cell) => cell.total > 0).length;
   const columns = buildColumns(monthHeatmap);
 
@@ -60,7 +62,7 @@ function StreakSummary({ heatmap }: StreakSummaryProps) {
     <section className="heatmap-panel heatmap-month-only">
       <div className="heatmap-header">
         <p className="heatmap-count">
-          <strong>{totalCompletions}</strong> completions in {MONTH_LABELS[currentMonth]} {currentYear}
+          <strong>{overallPercentage}%</strong> completion in {MONTH_LABELS[currentMonth]} {currentYear}
         </p>
         <div className="heatmap-stats">
           <span>Active days: <strong>{totalActiveDays}</strong></span>

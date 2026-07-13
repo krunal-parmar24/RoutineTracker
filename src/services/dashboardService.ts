@@ -62,6 +62,8 @@ export interface HeatmapCell {
   date: string | null;
   total: number;
   completed: number;
+  sumPercentage: number;
+  percentage: number;
   level: HeatmapLevel;
 }
 
@@ -88,8 +90,8 @@ function isValidDateKey(dateKey: string) {
 }
 
 /** Groups todos by date, counting how many were planned vs. completed each day. */
-function buildDailyCompletionMap(todos: Todo[]): Map<string, { total: number; completed: number }> {
-  const dateStore = new Map<string, { total: number; completed: number }>();
+function buildDailyCompletionMap(todos: Todo[]): Map<string, { total: number; completed: number; sumPercentage: number }> {
+  const dateStore = new Map<string, { total: number; completed: number; sumPercentage: number }>();
 
   for (const todo of todos) {
     // Guard against malformed/corrupted date values (e.g. bad test data) that would
@@ -98,8 +100,9 @@ function buildDailyCompletionMap(todos: Todo[]): Map<string, { total: number; co
       continue;
     }
 
-    const existing = dateStore.get(todo.date) ?? { total: 0, completed: 0 };
+    const existing = dateStore.get(todo.date) ?? { total: 0, completed: 0, sumPercentage: 0 };
     existing.total += 1;
+    existing.sumPercentage += (todo.completionPercentage || 0);
     if (todo.completionPercentage >= 100) {
       existing.completed += 1;
     }
@@ -109,19 +112,18 @@ function buildDailyCompletionMap(todos: Todo[]): Map<string, { total: number; co
   return dateStore;
 }
 
-function computeHeatmapLevel(total: number, completed: number): HeatmapLevel {
-  if (total === 0 || completed === 0) {
+function computeHeatmapLevel(percentage: number): HeatmapLevel {
+  if (percentage === 0) {
     return 0;
   }
 
-  const ratio = completed / total;
-  if (ratio >= 1) {
+  if (percentage >= 100) {
     return 4;
   }
-  if (ratio > 0.66) {
+  if (percentage > 66) {
     return 3;
   }
-  if (ratio > 0.33) {
+  if (percentage > 33) {
     return 2;
   }
   return 1;
@@ -203,7 +205,8 @@ export function getDashboardSummary(routineEntries: RoutineEntry[], todos: Todo[
   const notStartedTodos = todos.filter((todo) => todo.completionPercentage === 0).length;
   const missedTodos = timelineRows.filter((item) => item.status === 'Missed').length;
   const totalTodos = todos.length;
-  const overallCompletionPercentage = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
+  const sumPercentage = todos.reduce((sum, todo) => sum + (todo.completionPercentage || 0), 0);
+  const overallCompletionPercentage = totalTodos > 0 ? Math.round(sumPercentage / totalTodos) : 0;
 
   return {
     selectedDate,
@@ -266,7 +269,9 @@ export function getCompletionHeatmap(todos: Todo[], totalDays = HEATMAP_WINDOW_D
     const record = dateStore.get(dateKey);
     const total = record?.total ?? 0;
     const completed = record?.completed ?? 0;
-    days.push({ date: dateKey, total, completed, level: computeHeatmapLevel(total, completed) });
+    const sumPercentage = record?.sumPercentage ?? 0;
+    const percentage = total > 0 ? Math.round(sumPercentage / total) : 0;
+    days.push({ date: dateKey, total, completed, sumPercentage, percentage, level: computeHeatmapLevel(percentage) });
   }
 
   const firstDayWeekday = new Date(`${days[0].date}T00:00:00`).getDay();
@@ -274,6 +279,8 @@ export function getCompletionHeatmap(todos: Todo[], totalDays = HEATMAP_WINDOW_D
     date: null,
     total: 0,
     completed: 0,
+    sumPercentage: 0,
+    percentage: 0,
     level: 0,
   }));
 
