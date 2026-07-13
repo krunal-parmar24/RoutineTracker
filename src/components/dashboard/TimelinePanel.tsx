@@ -11,6 +11,7 @@ const statusIcons: Record<string, string> = {
   'In Progress': '🟡',
   'Not Started': '⚪',
   Missed: '🔴',
+  Rescheduled: '⏭️',
   'No Task Assigned': '⚫',
 };
 

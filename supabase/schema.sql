@@ -51,12 +51,20 @@ create table if not exists public.todos (
   description text,
   completion_percentage integer not null default 0 check (completion_percentage between 0 and 100),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  -- Enforces "a routine slot can only hold one todo for a given date" at the DB level.
-  unique (user_id, date, routine_entry_id)
+  updated_at timestamptz not null default now()
 );
 
+-- Enforces "a routine slot can only hold one active todo for a given date" at the DB level.
+-- We use a partial index so that tombstones (where rescheduled_to_date IS NOT NULL) are excluded from the constraint.
+create unique index if not exists todos_active_unique_idx on public.todos (user_id, date, routine_entry_id) where rescheduled_to_date is null;
+
 create index if not exists todos_user_date_idx on public.todos (user_id, date);
+
+-- Backfill for databases created before these columns existed
+alter table public.todos drop constraint if exists todos_user_id_date_routine_entry_id_key;
+alter table public.todos add column if not exists category text;
+alter table public.todos add column if not exists reschedule_count integer not null default 0;
+alter table public.todos add column if not exists rescheduled_to_date date;
 
 -- ---------------------------------------------------------------------------
 -- Keep weekly_routines.updated_at and todos.updated_at current automatically

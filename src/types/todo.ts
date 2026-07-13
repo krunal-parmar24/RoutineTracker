@@ -1,3 +1,6 @@
+export const TODO_CATEGORIES = ['DSA', 'System Design - LLD', 'System Design HLD', '.NET', 'Communication Skill', 'React', 'AI/ML', 'Docker & Kubernetes', 'SQL', 'Other', 'Uncategorized'] as const;
+export type TodoCategory = typeof TODO_CATEGORIES[number];
+
 export interface Todo {
   id: string;
   userId: string;
@@ -7,6 +10,9 @@ export interface Todo {
   routineTimeLabel: string;
   title: string;
   description?: string;
+  category?: TodoCategory;
+  rescheduleCount: number;
+  rescheduledToDate?: string;
   completionPercentage: number;
   createdAt: string;
   updatedAt: string;

@@ -1,7 +1,7 @@
 import type { RoutineEntry } from '../types/routine';
 import type { Todo } from '../types/todo';
 
-export type TimelineStatus = 'Completed' | 'In Progress' | 'Not Started' | 'Missed' | 'No Task Assigned';
+export type TimelineStatus = 'Completed' | 'In Progress' | 'Not Started' | 'Missed' | 'Rescheduled' | 'No Task Assigned';
 
 export interface TimelineRow {
   routineEntryId: string;
@@ -143,16 +143,20 @@ function isSlotMissed(selectedDate: string, endTime: string, completionPercentag
   return selectedDate === todayKey && now > slotEnd;
 }
 
-function getDisplayStatus(completionPercentage: number, selectedDate: string, endTime: string, now: Date): TimelineStatus {
-  if (completionPercentage >= 100) {
+function getDisplayStatus(todo: Todo, selectedDate: string, endTime: string, now: Date): TimelineStatus {
+  if (todo.rescheduledToDate) {
+    return 'Rescheduled';
+  }
+
+  if (todo.completionPercentage >= 100) {
     return 'Completed';
   }
 
-  if (isSlotMissed(selectedDate, endTime, completionPercentage, now)) {
+  if (isSlotMissed(selectedDate, endTime, todo.completionPercentage, now)) {
     return 'Missed';
   }
 
-  if (completionPercentage > 0) {
+  if (todo.completionPercentage > 0) {
     return 'In Progress';
   }
 
@@ -173,7 +177,7 @@ export function getTimelineRows(routineEntries: RoutineEntry[], todos: Todo[], s
       const isActive = selectedDate === todayKey && now >= slotStart && now <= slotEnd;
       const isPast = selectedDate < todayKey || (selectedDate === todayKey && now > slotEnd);
       const isFuture = selectedDate > todayKey || (selectedDate === todayKey && now < slotStart);
-      const status = todo ? getDisplayStatus(completionPercentage, selectedDate, entry.endTime, now) : 'No Task Assigned';
+      const status = todo ? getDisplayStatus(todo, selectedDate, entry.endTime, now) : 'No Task Assigned';
 
       return {
         isDeletedEntry: Boolean(entry.deletedAt),
@@ -205,8 +209,8 @@ export function getDashboardSummary(routineEntries: RoutineEntry[], todos: Todo[
   const notStartedTodos = todos.filter((todo) => todo.completionPercentage === 0).length;
   const missedTodos = timelineRows.filter((item) => item.status === 'Missed').length;
   const totalTodos = todos.length;
-  const sumPercentage = todos.reduce((sum, todo) => sum + (todo.completionPercentage || 0), 0);
-  const overallCompletionPercentage = totalTodos > 0 ? Math.round(sumPercentage / totalTodos) : 0;
+  const sumPercentage = timelineRows.reduce((sum, row) => sum + row.completionPercentage, 0);
+  const overallCompletionPercentage = timelineRows.length > 0 ? Math.round(sumPercentage / timelineRows.length) : 0;
 
   return {
     selectedDate,
@@ -229,17 +233,15 @@ export function getProductivityAnalysis(todos: Todo[]): ProductivityAnalysis {
     const slotLabel = todo.routineTimeLabel || 'Unscheduled';
     const current = grouped.get(slotLabel) ?? { total: 0, completed: 0 };
     current.total += 1;
-    if (todo.completionPercentage >= 100) {
-      current.completed += 1;
-    }
+    current.completed += (todo.completionPercentage || 0) / 100;
     grouped.set(slotLabel, current);
   }
 
   const slots: ProductivitySlot[] = Array.from(grouped.entries()).map(([slotLabel, data]) => ({
     slotLabel,
     totalTasks: data.total,
-    completedTasks: data.completed,
-    completionRate: Math.round((data.completed / data.total) * 100),
+    completedTasks: Number(data.completed.toFixed(1)),
+    completionRate: data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0,
   }));
 
   const sortedSlots = slots.sort((a, b) => b.completionRate - a.completionRate || a.slotLabel.localeCompare(b.slotLabel));

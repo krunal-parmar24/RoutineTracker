@@ -4,7 +4,7 @@ import type { TodoRepository } from './todoRepository';
 import type { Todo } from '../types/todo';
 import { withTimeout } from '../utils/withTimeout';
 
-const TODO_COLUMNS = 'id, user_id, date, weekday, routine_entry_id, routine_time_label, title, description, completion_percentage, created_at, updated_at';
+const TODO_COLUMNS = 'id, user_id, date, weekday, routine_entry_id, routine_time_label, title, description, category, reschedule_count, completion_percentage, created_at, updated_at';
 
 export class SupabaseTodoRepository implements TodoRepository {
   async getByDate(userId: string, date: string): Promise<Todo[]> {
@@ -69,6 +69,76 @@ export class SupabaseTodoRepository implements TodoRepository {
     }
 
     return mapTodoRow(data);
+  }
+
+  async batchUpdateTodos(todos: Todo[]): Promise<Todo[]> {
+    if (todos.length === 0) return [];
+    
+    // To avoid unique constraint violations (e.g. A bumps B, B bumps C),
+    // we must process the updates in reverse order (C moves to empty slot, B takes C's slot, A takes B's slot).
+    const results: TodoRow[] = [];
+    const reversed = [...todos].reverse();
+
+    for (const todo of reversed) {
+      const { data, error } = await withTimeout(
+        getSupabaseClient()
+          .from('todos')
+          .update(todoToRow(todo))
+          .eq('id', todo.id)
+          .eq('user_id', todo.userId)
+          .select(TODO_COLUMNS)
+          .single<TodoRow>()
+      );
+
+      if (error) {
+        if (error.code === '23505') {
+          throw new Error('A routine slot conflict occurred during batch update.');
+        }
+        throw new Error(error.message);
+      }
+      results.push(data);
+    }
+
+    // Return them in the original order (un-reverse)
+    return results.reverse().map(mapTodoRow);
+  }
+
+  async batchProcessReschedules(updates: Todo[], inserts: Todo[]): Promise<{ updated: Todo[], inserted: Todo[] }> {
+    const updatedResults: TodoRow[] = [];
+    for (const todo of updates) {
+      const { data, error } = await withTimeout(
+        getSupabaseClient()
+          .from('todos')
+          .update(todoToRow(todo))
+          .eq('id', todo.id)
+          .eq('user_id', todo.userId)
+          .select(TODO_COLUMNS)
+          .single<TodoRow>()
+      );
+      if (error) throw new Error(error.message);
+      updatedResults.push(data);
+    }
+
+    let insertResults: TodoRow[] = [];
+    if (inserts.length > 0) {
+       const rows = inserts.map(todoToRow);
+       const { data, error } = await withTimeout(
+         getSupabaseClient()
+           .from('todos')
+           .insert(rows)
+           .select(TODO_COLUMNS)
+       );
+       if (error) {
+         if (error.code === '23505') throw new Error('A routine slot conflict occurred during batch insert.');
+         throw new Error(error.message);
+       }
+       insertResults = data as TodoRow[] || [];
+    }
+
+    return {
+      updated: updatedResults.map(mapTodoRow),
+      inserted: insertResults.map(mapTodoRow)
+    };
   }
 
   async deleteTodo(userId: string, todoId: string): Promise<void> {

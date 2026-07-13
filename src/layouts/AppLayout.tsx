@@ -35,6 +35,7 @@ function AppLayout() {
               <NavLink onClick={() => setMenuOpen(false)} to="/" className={({ isActive }) => isActive ? 'nav-link nav-link-active' : 'nav-link'}>Dashboard</NavLink>
               <NavLink onClick={() => setMenuOpen(false)} to="/routine" className={({ isActive }) => isActive ? 'nav-link nav-link-active' : 'nav-link'}>Routine</NavLink>
               <NavLink onClick={() => setMenuOpen(false)} to="/history" className={({ isActive }) => isActive ? 'nav-link nav-link-active' : 'nav-link'}>History</NavLink>
+              <NavLink onClick={() => setMenuOpen(false)} to="/insights" className={({ isActive }) => isActive ? 'nav-link nav-link-active' : 'nav-link'}>Insights</NavLink>
               <button type="button" onClick={() => { logout(); setMenuOpen(false); }} className="nav-link nav-logout">Logout</button>
             </nav>
 

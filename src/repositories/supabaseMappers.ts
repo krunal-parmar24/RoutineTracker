@@ -24,6 +24,8 @@ export interface TodoRow {
   routine_time_label: string;
   title: string;
   description: string | null;
+  category: string | null;
+  reschedule_count: number;
   completion_percentage: number;
   created_at: string;
   updated_at: string;
@@ -72,25 +74,30 @@ export function mapTodoRow(row: TodoRow): Todo {
     routineEntryId: row.routine_entry_id,
     routineTimeLabel: row.routine_time_label,
     title: row.title,
-    description: row.description ?? undefined,
+    description: row.description || undefined,
+    category: row.category as TodoCategory || undefined,
+    rescheduleCount: row.reschedule_count,
+    rescheduledToDate: row.rescheduled_to_date || undefined,
     completionPercentage: row.completion_percentage,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
-export function todoToRow(todo: Todo): TodoRow {
+export function todoToRow(todo: Todo): Partial<TodoRow> {
   return {
-    id: todo.id,
+    ...(todo.id && { id: todo.id }),
     user_id: todo.userId,
     date: todo.date,
     weekday: todo.weekday,
     routine_entry_id: todo.routineEntryId,
     routine_time_label: todo.routineTimeLabel,
     title: todo.title,
-    description: todo.description ?? null,
+    description: todo.description || null,
+    category: todo.category || null,
+    reschedule_count: todo.rescheduleCount,
+    rescheduled_to_date: todo.rescheduledToDate || null,
     completion_percentage: todo.completionPercentage,
-    created_at: todo.createdAt,
     updated_at: todo.updatedAt,
   };
 }

@@ -84,7 +84,7 @@ function DashboardPage() {
 
   const heatmap = useMemo(() => getCompletionHeatmap(allTodos), [allTodos]);
 
-  const handleCreateTodo = async (payload: { title: string; description: string; routineEntryId: string }) => {
+  const handleCreateTodo = async (payload: { title: string; description: string; routineEntryId: string; category: string }) => {
     if (!user?.id) {
       return;
     }
@@ -108,6 +108,8 @@ function DashboardPage() {
       routineTimeLabel: buildRoutineTimeLabel(entry),
       title: payload.title,
       description: payload.description || undefined,
+      category: payload.category || undefined,
+      rescheduleCount: 0,
       completionPercentage: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
