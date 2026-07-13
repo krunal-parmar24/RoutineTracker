@@ -14,7 +14,7 @@ import SummaryCards from '../components/dashboard/SummaryCards';
 import TimelinePanel from '../components/dashboard/TimelinePanel';
 import StreakSummary from '../components/dashboard/StreakSummary';
 import type { WeeklyRoutine } from '../types/routine';
-import type { Todo } from '../types/todo';
+import type { Todo, TodoCategory } from '../types/todo';
 import { formatDisplayDate } from '../utils/date';
 
 const routineRepository = appServices.routineRepository;
@@ -84,7 +84,7 @@ function DashboardPage() {
 
   const heatmap = useMemo(() => getCompletionHeatmap(allTodos), [allTodos]);
 
-  const handleCreateTodo = async (payload: { title: string; description: string; routineEntryId: string; category: string }) => {
+  const handleCreateTodo = async (payload: { title: string; description: string; routineEntryId: string; category: TodoCategory }) => {
     if (!user?.id) {
       return;
     }

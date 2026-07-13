@@ -5,7 +5,7 @@ import { useAuthContext } from '../context/AuthContext';
 import { appServices } from '../services/appServices';
 import { isPastTodo, buildRoutineTimeLabel } from '../services/todoService';
 import { calculateCascade } from '../services/rescheduleService';
-import { TODO_CATEGORIES, type Todo } from '../types/todo';
+import { TODO_CATEGORIES, type Todo, type TodoCategory } from '../types/todo';
 import type { WeeklyRoutine } from '../types/routine';
 import { formatDisplayDate } from '../utils/date';
 
@@ -32,7 +32,7 @@ function TodoDetailPage() {
   const [editDescription, setEditDescription] = useState('');
   const [editDate, setEditDate] = useState('');
   const [editRoutineEntryId, setEditRoutineEntryId] = useState('');
-  const [editCategory, setEditCategory] = useState(TODO_CATEGORIES[0]);
+  const [editCategory, setEditCategory] = useState<TodoCategory>(TODO_CATEGORIES[0]);
 
   useEffect(() => {
     if (!user?.id || !todoId) {

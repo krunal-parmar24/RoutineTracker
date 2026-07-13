@@ -1,5 +1,5 @@
 import type { DayOfWeek, RoutineEntry } from '../types/routine';
-import type { Todo } from '../types/todo';
+import type { Todo, TodoCategory } from '../types/todo';
 
 export interface RoutineEntryRow {
   id: string;
@@ -26,6 +26,7 @@ export interface TodoRow {
   description: string | null;
   category: string | null;
   reschedule_count: number;
+  rescheduled_to_date: string | null;
   completion_percentage: number;
   created_at: string;
   updated_at: string;

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import type { RoutineEntry } from '../../types/routine';
-import { TODO_CATEGORIES } from '../../types/todo';
+import { TODO_CATEGORIES, type TodoCategory } from '../../types/todo';
 
 interface TodoFormProps {
   routineEntries: RoutineEntry[];
-  onSubmit: (payload: { title: string; description: string; routineEntryId: string; category: string }) => void;
+  onSubmit: (payload: { title: string; description: string; routineEntryId: string; category: TodoCategory }) => void;
   onCancel: () => void;
   isSaving?: boolean;
 }
@@ -13,7 +13,7 @@ function TodoForm({ routineEntries, onSubmit, onCancel, isSaving }: TodoFormProp
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [routineEntryId, setRoutineEntryId] = useState(routineEntries[0]?.id ?? '');
-  const [category, setCategory] = useState(TODO_CATEGORIES[0]);
+  const [category, setCategory] = useState<TodoCategory>(TODO_CATEGORIES[0]);
   const [error, setError] = useState('');
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -43,7 +43,7 @@ function TodoForm({ routineEntries, onSubmit, onCancel, isSaving }: TodoFormProp
         <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Task title" required className="input" disabled={Boolean(isSaving)} />
         
         <label className="summary-label" style={{ display: 'block', marginBottom: '4px', marginTop: '12px' }}>Category</label>
-        <select value={category} onChange={(event) => setCategory(event.target.value)} className="select" disabled={Boolean(isSaving)}>
+        <select value={category} onChange={(event) => setCategory(event.target.value as TodoCategory)} className="select" disabled={Boolean(isSaving)}>
           {TODO_CATEGORIES.map((cat) => (
             <option key={cat} value={cat}>{cat}</option>
           ))}
