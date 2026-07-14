@@ -9,7 +9,8 @@ const TODO_COLUMNS = 'id, user_id, date, weekday, routine_entry_id, routine_time
 export class SupabaseTodoRepository implements TodoRepository {
   async getByDate(userId: string, date: string): Promise<Todo[]> {
     const { data, error } = await withTimeout(
-      getSupabaseClient().from('todos').select(TODO_COLUMNS).eq('user_id', userId).eq('date', date),
+      // Only return active todos for the date (exclude tombstones where rescheduled_to_date IS NOT NULL)
+      getSupabaseClient().from('todos').select(TODO_COLUMNS).eq('user_id', userId).eq('date', date).is('rescheduled_to_date', null),
     );
 
     if (error) {
@@ -50,7 +51,13 @@ export class SupabaseTodoRepository implements TodoRepository {
       throw new Error(error.message);
     }
 
-    return mapTodoRow(data);
+    const saved = mapTodoRow(data);
+    try {
+      window.dispatchEvent(new CustomEvent('todo:created', { detail: { id: saved.id } }));
+    } catch {
+      // noop in non-browser environments
+    }
+    return saved;
   }
 
   async updateTodo(todo: Todo): Promise<Todo> {
@@ -65,10 +72,19 @@ export class SupabaseTodoRepository implements TodoRepository {
     );
 
     if (error) {
+      if (error.code === '23505') {
+        throw new Error('This routine slot already has a todo for this date.');
+      }
       throw new Error(error.message);
     }
 
-    return mapTodoRow(data);
+    const saved = mapTodoRow(data);
+    try {
+      window.dispatchEvent(new CustomEvent('todo:updated', { detail: { id: saved.id } }));
+    } catch {
+      // noop in non-browser environments
+    }
+    return saved;
   }
 
   async batchUpdateTodos(todos: Todo[]): Promise<Todo[]> {
@@ -135,10 +151,18 @@ export class SupabaseTodoRepository implements TodoRepository {
        insertResults = data as TodoRow[] || [];
     }
 
-    return {
-      updated: updatedResults.map(mapTodoRow),
-      inserted: insertResults.map(mapTodoRow)
-    };
+      const result = {
+        updated: updatedResults.map(mapTodoRow),
+        inserted: insertResults.map(mapTodoRow)
+      };
+
+      try {
+        window.dispatchEvent(new CustomEvent('todo:batch', { detail: { updated: result.updated.map(t => t.id), inserted: result.inserted.map(t => t.id) } }));
+      } catch {
+        // noop in non-browser environments
+      }
+
+      return result;
   }
 
   async deleteTodo(userId: string, todoId: string): Promise<void> {

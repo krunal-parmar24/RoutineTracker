@@ -1,5 +1,6 @@
 import type { RoutineEntry } from '../types/routine';
 import type { Todo, TodoStatusResult } from '../types/todo';
+import { formatTime12 } from '../utils/date';
 
 export function getTodoStatus(percentage: number): TodoStatusResult {
   if (percentage >= 100) {
@@ -14,7 +15,7 @@ export function getTodoStatus(percentage: number): TodoStatusResult {
 }
 
 export function buildRoutineTimeLabel(entry: Pick<RoutineEntry, 'startTime' | 'endTime'>) {
-  return `${entry.startTime}–${entry.endTime}`;
+  return `${formatTime12(entry.startTime)}–${formatTime12(entry.endTime)}`;
 }
 
 export function canAssignTodo(todos: Todo[], routineEntryId: string) {

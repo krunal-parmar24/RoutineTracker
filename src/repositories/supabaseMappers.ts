@@ -86,19 +86,21 @@ export function mapTodoRow(row: TodoRow): Todo {
 }
 
 export function todoToRow(todo: Todo): Partial<TodoRow> {
-  return {
-    ...(todo.id && { id: todo.id }),
-    user_id: todo.userId,
-    date: todo.date,
-    weekday: todo.weekday,
-    routine_entry_id: todo.routineEntryId,
-    routine_time_label: todo.routineTimeLabel,
-    title: todo.title,
-    description: todo.description || null,
-    category: todo.category || null,
-    reschedule_count: todo.rescheduleCount,
-    rescheduled_to_date: todo.rescheduledToDate || null,
-    completion_percentage: todo.completionPercentage,
-    updated_at: todo.updatedAt,
-  };
+  const row: Partial<TodoRow> = {};
+
+  if (todo.id) row.id = todo.id;
+  if (typeof todo.userId !== 'undefined') row.user_id = todo.userId;
+  if (typeof todo.date !== 'undefined') row.date = todo.date;
+  if (typeof todo.weekday !== 'undefined') row.weekday = todo.weekday;
+  if (typeof todo.routineEntryId !== 'undefined') row.routine_entry_id = todo.routineEntryId;
+  if (typeof todo.routineTimeLabel !== 'undefined') row.routine_time_label = todo.routineTimeLabel;
+  if (typeof todo.title !== 'undefined') row.title = todo.title;
+  if (typeof todo.description !== 'undefined') row.description = todo.description ?? null;
+  if (typeof todo.category !== 'undefined') row.category = todo.category ?? null;
+  if (typeof todo.rescheduleCount !== 'undefined') row.reschedule_count = todo.rescheduleCount;
+  if (typeof todo.rescheduledToDate !== 'undefined') row.rescheduled_to_date = todo.rescheduledToDate ?? null;
+  if (typeof todo.completionPercentage !== 'undefined') row.completion_percentage = todo.completionPercentage;
+  if (typeof todo.updatedAt !== 'undefined') row.updated_at = todo.updatedAt;
+
+  return row;
 }

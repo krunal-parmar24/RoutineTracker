@@ -4,6 +4,7 @@ import Modal from '../components/ui/Modal';
 import { useToast } from '../components/ui/ToastProvider';
 import { useAuthContext } from '../context/AuthContext';
 import { buildComparableEntries, validateRoutineEntries } from '../services/routineService';
+import { buildRoutineTimeLabel } from '../services/todoService';
 import { appServices } from '../services/appServices';
 import type { DayOfWeek, RoutineEntry, WeeklyRoutine } from '../types/routine';
 
@@ -163,7 +164,7 @@ function RoutinePage() {
                 <div key={entry.id} className="entry-card card-compact">
                   <div className="entry-card-body">
                     <div className="entry-card-info">
-                      <p className="entry-card-time">{entry.startTime} – {entry.endTime}</p>
+                      <p className="entry-card-time">{buildRoutineTimeLabel(entry)}</p>
                       <p className="entry-card-title">{entry.title}</p>
                       {entry.description ? <p className="small-text" style={{ margin: 0 }}>{entry.description}</p> : null}
                     </div>

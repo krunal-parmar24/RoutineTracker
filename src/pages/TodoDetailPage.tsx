@@ -141,25 +141,33 @@ function TodoDetailPage() {
         rescheduleCount: nextRescheduleCount,
         updatedAt: new Date().toISOString(),
       };
-      
-      const allTodos = await todoRepository.getAll(user.id);
-      const { updates, inserts } = calculateCascade(todo, updated, allTodos, routine!);
-      const result = await todoRepository.batchProcessReschedules(updates, inserts);
-      
-      const newActiveTask = result.inserted.length > 0 ? result.inserted[0] : null;
-      
-      setIsEditing(false);
-      
-      if (inserts.length > 1) {
-        showToast(`Rescheduled task and bumped ${inserts.length - 1} future task(s).`);
-      } else {
-        showToast('Todo updated successfully.');
-      }
 
-      if (newActiveTask && newActiveTask.id !== todo.id) {
-         navigate(`/todo/${newActiveTask.id}`, { replace: true });
+      // If the date did not change, this is a simple update: avoid the reschedule cascade.
+      if (editDate === todo.date) {
+        const saved = await todoRepository.updateTodo(updated);
+        setIsEditing(false);
+        setTodo(saved);
+        showToast('Todo updated successfully.');
       } else {
-         setTodo(newActiveTask || todo);
+        const allTodos = await todoRepository.getAll(user.id);
+        const { updates, inserts } = calculateCascade(todo, updated, allTodos, routine!);
+        const result = await todoRepository.batchProcessReschedules(updates, inserts);
+
+        const newActiveTask = result.inserted.length > 0 ? result.inserted[0] : null;
+
+        setIsEditing(false);
+
+        if (inserts.length > 1) {
+          showToast(`Rescheduled task and bumped ${inserts.length - 1} future task(s).`);
+        } else {
+          showToast('Todo updated successfully.');
+        }
+
+        if (newActiveTask && newActiveTask.id !== todo.id) {
+          navigate(`/todo/${newActiveTask.id}`, { replace: true });
+        } else {
+          setTodo(newActiveTask || todo);
+        }
       }
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to update todo.');
@@ -311,7 +319,7 @@ function TodoDetailPage() {
                     <option value="">Select a routine slot</option>
                     {availableRoutineSlots.map((entry) => (
                       <option key={entry.id} value={entry.id}>
-                        {entry.startTime}–{entry.endTime} · {entry.title}
+                        {buildRoutineTimeLabel(entry)} · {entry.title}
                       </option>
                     ))}
                   </>

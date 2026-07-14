@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { RoutineEntry } from '../../types/routine';
 import { TODO_CATEGORIES, type TodoCategory } from '../../types/todo';
+import { buildRoutineTimeLabel } from '../../services/todoService';
 
 interface TodoFormProps {
   routineEntries: RoutineEntry[];
@@ -61,7 +62,7 @@ function TodoForm({ routineEntries, onSubmit, onCancel, isSaving }: TodoFormProp
               <option value="">Select a routine slot</option>
               {routineEntries.map((entry) => (
                 <option key={entry.id} value={entry.id}>
-                  {entry.startTime}–{entry.endTime} · {entry.title}
+                  {buildRoutineTimeLabel(entry)} · {entry.title}
                 </option>
               ))}
             </>

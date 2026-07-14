@@ -28,6 +28,7 @@ function DashboardPage() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [allTodos, setAllTodos] = useState<Todo[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [refreshFlag, setRefreshFlag] = useState(0);
 
   useEffect(() => {
     if (!user?.id) {
@@ -53,6 +54,49 @@ function DashboardPage() {
 
     loadDashboard();
   }, [selectedDate, user?.id, showToast]);
+
+  useEffect(() => {
+    const handler = () => setRefreshFlag((v) => v + 1);
+    const created = () => handler();
+    const updated = () => handler();
+    const deleted = () => handler();
+    const batch = () => handler();
+
+    window.addEventListener('todo:created', created);
+    window.addEventListener('todo:updated', updated);
+    window.addEventListener('todo:deleted', deleted);
+    window.addEventListener('todo:batch', batch);
+
+    return () => {
+      window.removeEventListener('todo:created', created);
+      window.removeEventListener('todo:updated', updated);
+      window.removeEventListener('todo:deleted', deleted);
+      window.removeEventListener('todo:batch', batch);
+    };
+  }, []);
+
+  // Reload when refreshFlag changes (triggered by events)
+  useEffect(() => {
+    if (!user?.id) return;
+    const loadDashboard = async () => {
+      try {
+        const [loadedRoutine, loadedTodos, loadedAllTodos] = await Promise.all([
+          routineRepository.getRoutine(user.id),
+          todoRepository.getByDate(user.id, selectedDate),
+          todoRepository.getAll(user.id),
+        ]);
+
+        setRoutine(loadedRoutine);
+        setTodos(loadedTodos);
+        setAllTodos(loadedAllTodos);
+      } catch (err) {
+        console.error('Failed loading dashboard', err);
+        showToast(err instanceof Error ? err.message : 'Failed to load dashboard.');
+      }
+    };
+
+    loadDashboard();
+  }, [refreshFlag, selectedDate, user?.id, showToast]);
 
   const weekday = useMemo(() => {
     const date = new Date(`${selectedDate}T00:00:00`);

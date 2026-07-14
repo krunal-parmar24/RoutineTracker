@@ -1,5 +1,7 @@
 import type { RoutineEntry } from '../types/routine';
 import type { Todo } from '../types/todo';
+import { formatTime12 } from '../utils/date';
+import { buildRoutineTimeLabel } from './todoService';
 
 export type TimelineStatus = 'Completed' | 'In Progress' | 'Not Started' | 'Missed' | 'Rescheduled' | 'No Task Assigned';
 
@@ -100,6 +102,11 @@ function buildDailyCompletionMap(todos: Todo[]): Map<string, { total: number; co
       continue;
     }
 
+    // Exclude tombstone rows (rescheduled tasks) from daily performance calculations
+    if (todo.rescheduledToDate) {
+      continue;
+    }
+
     const existing = dateStore.get(todo.date) ?? { total: 0, completed: 0, sumPercentage: 0 };
     existing.total += 1;
     existing.sumPercentage += (todo.completionPercentage || 0);
@@ -170,7 +177,8 @@ export function getTimelineRows(routineEntries: RoutineEntry[], todos: Todo[], s
   return [...routineEntries]
     .sort((a, b) => a.startTime.localeCompare(b.startTime))
     .map((entry) => {
-      const todo = todos.find((item) => item.routineEntryId === entry.id);
+      // Only consider todos that are active for the selected date.
+      const todo = todos.find((item) => item.routineEntryId === entry.id && item.date === selectedDate && !item.rescheduledToDate);
       const completionPercentage = todo?.completionPercentage ?? 0;
       const slotStart = buildDateTime(selectedDate, entry.startTime);
       const slotEnd = buildDateTime(selectedDate, entry.endTime);
@@ -183,9 +191,9 @@ export function getTimelineRows(routineEntries: RoutineEntry[], todos: Todo[], s
         isDeletedEntry: Boolean(entry.deletedAt),
         row: {
           routineEntryId: entry.id,
-          routineTimeLabel: `${entry.startTime}–${entry.endTime}`,
-          startTime: entry.startTime,
-          endTime: entry.endTime,
+          routineTimeLabel: buildRoutineTimeLabel(entry),
+          startTime: formatTime12(entry.startTime),
+          endTime: formatTime12(entry.endTime),
           routineTitle: entry.title,
           todo,
           status,
