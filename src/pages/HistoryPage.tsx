@@ -54,7 +54,7 @@ function HistoryPage() {
                   <div key={todo.id} className="todo-card card-compact">
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
                       <div>
-                            <p style={{ margin: '0 0 6px', fontWeight: 700 }}>{formatTimeRange(todo.routineTimeLabel)}</p>
+                            <p style={{ margin: '0 0 6px', fontWeight: 700 }}>{todo.routineTimeLabel ? formatTimeRange(todo.routineTimeLabel) : 'Unscheduled'}</p>
                         <p style={{ margin: 0 }}>{todo.title}</p>
                         {todo.description ? <p className="small-text" style={{ margin: '8px 0 0' }}>{todo.description}</p> : null}
                       </div>
