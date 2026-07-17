@@ -93,7 +93,7 @@ function TodoDetailPage() {
     setEditTitle(todo.title);
     setEditDescription(todo.description || '');
     setEditDate(todo.date);
-    setEditRoutineEntryId(todo.routineEntryId);
+    setEditRoutineEntryId(todo.routineEntryId ?? '');
     setEditCategory((todo.category as typeof TODO_CATEGORIES[number]) || TODO_CATEGORIES[0]);
     setIsEditing(true);
   };
@@ -111,15 +111,13 @@ function TodoDetailPage() {
       return;
     }
     
-    if (!editRoutineEntryId) {
-      showToast('Select a routine slot.');
-      return;
-    }
-
     const editWeekday = new Date(`${editDate}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long' });
-    const selectedEntry = routine?.entries.find(e => e.id === editRoutineEntryId);
-    
-    if (!selectedEntry) {
+    const selectedEntry = editRoutineEntryId
+      ? routine?.entries.find(e => e.id === editRoutineEntryId)
+      : undefined;
+
+    // If a slot was selected but not found in the routine, bail out
+    if (editRoutineEntryId && !selectedEntry) {
       showToast('Invalid routine slot selected.');
       return;
     }
@@ -136,8 +134,8 @@ function TodoDetailPage() {
         category: editCategory,
         date: editDate,
         weekday: editWeekday,
-        routineEntryId: editRoutineEntryId,
-        routineTimeLabel: buildRoutineTimeLabel(selectedEntry),
+        routineEntryId: selectedEntry ? editRoutineEntryId : undefined,
+        routineTimeLabel: selectedEntry ? buildRoutineTimeLabel(selectedEntry) : undefined,
         rescheduleCount: nextRescheduleCount,
         updatedAt: new Date().toISOString(),
       };
@@ -305,25 +303,21 @@ function TodoDetailPage() {
                 disabled={isSaving}
               />
               
-              <label className="summary-label" style={{ display: 'block', marginBottom: '4px', marginTop: '12px' }}>Routine Slot</label>
+              <label className="summary-label" style={{ display: 'block', marginBottom: '4px', marginTop: '12px' }}>
+                Routine Slot <span style={{ fontWeight: 400, opacity: 0.6 }}>(optional)</span>
+              </label>
               <select 
                 value={editRoutineEntryId} 
                 onChange={(event) => setEditRoutineEntryId(event.target.value)} 
                 className="select" 
-                disabled={availableRoutineSlots.length === 0 || isSaving}
+                disabled={isSaving}
               >
-                {availableRoutineSlots.length === 0 ? (
-                  <option value="">No routine entries for this date</option>
-                ) : (
-                  <>
-                    <option value="">Select a routine slot</option>
-                    {availableRoutineSlots.map((entry) => (
-                      <option key={entry.id} value={entry.id}>
-                        {buildRoutineTimeLabel(entry)} · {entry.title}
-                      </option>
-                    ))}
-                  </>
-                )}
+                <option value="">— No routine slot (free task) —</option>
+                {availableRoutineSlots.map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {buildRoutineTimeLabel(entry)} · {entry.title}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="button-row" style={{ marginTop: '16px' }}>
@@ -341,10 +335,12 @@ function TodoDetailPage() {
               <span className="summary-label">Date</span>
               <strong className="summary-value">{formatDisplayDate(todo.date)}</strong>
             </div>
-            <div className="summary-card" style={{ marginTop: '16px' }}>
-              <span className="summary-label">Routine slot</span>
-              <strong className="summary-value">{todo.routineTimeLabel}</strong>
-            </div>
+            {todo.routineTimeLabel && (
+              <div className="summary-card" style={{ marginTop: '16px' }}>
+                <span className="summary-label">Routine slot</span>
+                <strong className="summary-value">{todo.routineTimeLabel}</strong>
+              </div>
+            )}
             <div className="summary-card" style={{ marginTop: '16px' }}>
               <span className="summary-label">Category</span>
               <strong className="summary-value">{todo.category || 'Uncategorized'}</strong>

@@ -18,6 +18,13 @@ export function groupTodosByDate(todos: Todo[]): HistoryGroup[] {
     .sort((a, b) => b[0].localeCompare(a[0]))
     .map(([date, items]) => ({
       date,
-      todos: items.sort((a, b) => a.routineTimeLabel.localeCompare(b.routineTimeLabel)),
+      todos: items.sort((a, b) => {
+        // Routine-slotted todos sort by time label; free todos (no slot) go last
+        const aLabel = a.routineTimeLabel ?? '';
+        const bLabel = b.routineTimeLabel ?? '';
+        if (aLabel !== bLabel) return aLabel.localeCompare(bLabel);
+        // Tiebreak by creation time
+        return a.createdAt.localeCompare(b.createdAt);
+      }),
     }));
 }

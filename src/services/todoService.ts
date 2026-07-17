@@ -18,7 +18,9 @@ export function buildRoutineTimeLabel(entry: Pick<RoutineEntry, 'startTime' | 'e
   return `${formatTime12(entry.startTime)}–${formatTime12(entry.endTime)}`;
 }
 
-export function canAssignTodo(todos: Todo[], routineEntryId: string) {
+export function canAssignTodo(todos: Todo[], routineEntryId: string | undefined) {
+  // Free todos (no routine slot) are always allowed
+  if (!routineEntryId) return true;
   return !todos.some((todo) => todo.routineEntryId === routineEntryId);
 }
 

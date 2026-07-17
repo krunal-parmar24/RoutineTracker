@@ -6,8 +6,8 @@ export interface Todo {
   userId: string;
   date: string;
   weekday: string;
-  routineEntryId: string;
-  routineTimeLabel: string;
+  routineEntryId?: string;
+  routineTimeLabel?: string;
   title: string;
   description?: string;
   category?: TodoCategory;

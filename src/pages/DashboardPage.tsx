@@ -8,6 +8,7 @@ import { appServices } from '../services/appServices';
 import {
   getCompletionHeatmap,
   getDashboardSummary,
+  getFreeTodos,
   getTimelineRows,
 } from '../services/dashboardService';
 import SummaryCards from '../components/dashboard/SummaryCards';
@@ -128,28 +129,59 @@ function DashboardPage() {
 
   const heatmap = useMemo(() => getCompletionHeatmap(allTodos), [allTodos]);
 
-  const handleCreateTodo = async (payload: { title: string; description: string; routineEntryId: string; category: TodoCategory }) => {
+  const freeTodos = useMemo(() => getFreeTodos(todos, selectedDate), [todos, selectedDate]);
+
+  const handleCreateTodo = async (payload: { title: string; description: string; routineEntryId?: string; category: TodoCategory }) => {
     if (!user?.id) {
       return;
     }
 
-    const entry = routineEntries.find((item) => item.id === payload.routineEntryId);
-    if (!entry) {
+    // Routine-linked todo
+    if (payload.routineEntryId) {
+      const entry = routineEntries.find((item) => item.id === payload.routineEntryId);
+      if (!entry) {
+        return;
+      }
+
+      if (!canAssignTodo(todos, payload.routineEntryId)) {
+        showToast('This routine slot already has a todo for this date.');
+        return;
+      }
+
+      const todo: Todo = {
+        id: crypto.randomUUID(),
+        userId: user.id,
+        date: selectedDate,
+        weekday,
+        routineEntryId: payload.routineEntryId,
+        routineTimeLabel: buildRoutineTimeLabel(entry),
+        title: payload.title,
+        description: payload.description || undefined,
+        category: payload.category || undefined,
+        rescheduleCount: 0,
+        completionPercentage: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      try {
+        const savedTodo = await todoRepository.saveTodo(todo);
+        setTodos((current) => [...current, savedTodo]);
+        setAllTodos((current) => [...current, savedTodo]);
+        setShowForm(false);
+        showToast('Todo created.');
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Failed to create todo.');
+      }
       return;
     }
 
-    if (!canAssignTodo(todos, payload.routineEntryId)) {
-      showToast('This routine slot already has a todo for this date.');
-      return;
-    }
-
+    // Free todo — not linked to any routine slot
     const todo: Todo = {
       id: crypto.randomUUID(),
       userId: user.id,
       date: selectedDate,
       weekday,
-      routineEntryId: payload.routineEntryId,
-      routineTimeLabel: buildRoutineTimeLabel(entry),
       title: payload.title,
       description: payload.description || undefined,
       category: payload.category || undefined,
@@ -206,7 +238,7 @@ function DashboardPage() {
 
       <div className="grid-2">
         <SummaryCards summary={summary} />
-        <TimelinePanel timelineItems={timelineRows} />
+        <TimelinePanel timelineItems={timelineRows} freeTodos={freeTodos} />
       </div>
 
       <div className="grid-2">

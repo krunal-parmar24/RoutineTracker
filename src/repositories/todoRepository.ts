@@ -37,11 +37,14 @@ export class LocalStorageTodoRepository implements TodoRepository {
 
   async updateTodo(todo: Todo): Promise<Todo> {
     const data = readStorageData();
-    const conflict = data.todos.find(
-      (item) => item.userId === todo.userId && item.date === todo.date && item.routineEntryId === todo.routineEntryId && item.id !== todo.id
-    );
-    if (conflict) {
-      throw new Error('This routine slot already has a todo for this date.');
+    // Only check slot conflicts for routine-linked todos
+    if (todo.routineEntryId) {
+      const conflict = data.todos.find(
+        (item) => item.userId === todo.userId && item.date === todo.date && item.routineEntryId === todo.routineEntryId && item.id !== todo.id
+      );
+      if (conflict) {
+        throw new Error('This routine slot already has a todo for this date.');
+      }
     }
     const nextTodos = data.todos.map((item) => (item.id === todo.id ? todo : item));
     data.todos = nextTodos;
@@ -55,10 +58,12 @@ export class LocalStorageTodoRepository implements TodoRepository {
       const match = todos.find((t) => t.id === item.id);
       return match ? match : item;
     });
-    // Check conflicts across the entire new set and existing set
+    // Check conflicts across the entire new set and existing set.
+    // Only routine-linked todos (with a routineEntryId) participate in the uniqueness constraint.
     // A conflict occurs if there are duplicate (userId, date, routineEntryId) pairs.
     const seen = new Set<string>();
     for (const item of nextTodos) {
+      if (!item.routineEntryId) continue; // free todos may stack freely
       const key = `${item.userId}|${item.date}|${item.routineEntryId}`;
       if (seen.has(key)) {
         throw new Error(`Conflict detected for slot on ${item.date}.`);
@@ -84,9 +89,10 @@ export class LocalStorageTodoRepository implements TodoRepository {
     
     nextTodos = [...nextTodos, ...newInserts];
 
-    // Check conflicts
+    // Check conflicts — only for routine-linked todos
     const seen = new Set<string>();
     for (const item of nextTodos) {
+      if (!item.routineEntryId) continue; // free todos may stack freely
       const key = `${item.userId}|${item.date}|${item.routineEntryId}`;
       if (seen.has(key)) {
         throw new Error(`Conflict detected for slot on ${item.date}.`);

@@ -210,15 +210,27 @@ export function getTimelineRows(routineEntries: RoutineEntry[], todos: Todo[], s
     .map((item) => item.row);
 }
 
+/** Returns todos for `selectedDate` that are NOT tied to any routine slot. */
+export function getFreeTodos(todos: Todo[], selectedDate: string): Todo[] {
+  return todos.filter((todo) => todo.date === selectedDate && !todo.routineEntryId && !todo.rescheduledToDate);
+}
+
 export function getDashboardSummary(routineEntries: RoutineEntry[], todos: Todo[], selectedDate: string, weekday: string): DashboardSummary {
   const timelineRows = getTimelineRows(routineEntries, todos, selectedDate);
-  const completedTodos = todos.filter((todo) => todo.completionPercentage >= 100).length;
-  const inProgressTodos = todos.filter((todo) => todo.completionPercentage > 0 && todo.completionPercentage < 100).length;
-  const notStartedTodos = todos.filter((todo) => todo.completionPercentage === 0).length;
+  const freeTodos = getFreeTodos(todos, selectedDate);
+  // All active todos for the selected date (routine-linked + free)
+  const allDayTodos = [...todos.filter((t) => t.date === selectedDate && !t.rescheduledToDate), ...freeTodos].filter(
+    (t, idx, arr) => arr.findIndex((x) => x.id === t.id) === idx // deduplicate
+  );
+  const completedTodos = allDayTodos.filter((todo) => todo.completionPercentage >= 100).length;
+  const inProgressTodos = allDayTodos.filter((todo) => todo.completionPercentage > 0 && todo.completionPercentage < 100).length;
+  const notStartedTodos = allDayTodos.filter((todo) => todo.completionPercentage === 0).length;
   const missedTodos = timelineRows.filter((item) => item.status === 'Missed').length;
-  const totalTodos = todos.length;
-  const sumPercentage = timelineRows.reduce((sum, row) => sum + row.completionPercentage, 0);
-  const overallCompletionPercentage = timelineRows.length > 0 ? Math.round(sumPercentage / timelineRows.length) : 0;
+  const totalTodos = allDayTodos.length;
+  const sumPercentage = timelineRows.reduce((sum, row) => sum + row.completionPercentage, 0)
+    + freeTodos.reduce((sum, t) => sum + t.completionPercentage, 0);
+  const denominator = timelineRows.length + freeTodos.length;
+  const overallCompletionPercentage = denominator > 0 ? Math.round(sumPercentage / denominator) : 0;
 
   return {
     selectedDate,

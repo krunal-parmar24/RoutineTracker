@@ -45,8 +45,9 @@ create table if not exists public.todos (
   user_id uuid not null references auth.users (id) on delete cascade,
   date date not null,
   weekday text not null,
-  routine_entry_id uuid not null references public.routine_entries (id) on delete restrict,
-  routine_time_label text not null,
+  -- Nullable: free todos are not tied to any routine slot
+  routine_entry_id uuid references public.routine_entries (id) on delete restrict,
+  routine_time_label text,
   title text not null,
   description text,
   completion_percentage integer not null default 0 check (completion_percentage between 0 and 100),
@@ -56,6 +57,8 @@ create table if not exists public.todos (
 
 -- Enforces "a routine slot can only hold one active todo for a given date" at the DB level.
 -- We use a partial index so that tombstones (where rescheduled_to_date IS NOT NULL) are excluded from the constraint.
+-- NULL routine_entry_id (free todos) are excluded from this index because NULL != NULL in Postgres,
+-- meaning multiple free todos on the same date are allowed.
 create unique index if not exists todos_active_unique_idx on public.todos (user_id, date, routine_entry_id) where rescheduled_to_date is null;
 
 create index if not exists todos_user_date_idx on public.todos (user_id, date);
@@ -65,6 +68,9 @@ alter table public.todos drop constraint if exists todos_user_id_date_routine_en
 alter table public.todos add column if not exists category text;
 alter table public.todos add column if not exists reschedule_count integer not null default 0;
 alter table public.todos add column if not exists rescheduled_to_date date;
+-- Allow free todos (not tied to a routine slot) — make these columns nullable on existing DBs
+alter table public.todos alter column routine_entry_id drop not null;
+alter table public.todos alter column routine_time_label drop not null;
 
 -- ---------------------------------------------------------------------------
 -- Keep weekly_routines.updated_at and todos.updated_at current automatically

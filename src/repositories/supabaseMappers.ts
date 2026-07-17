@@ -20,8 +20,8 @@ export interface TodoRow {
   user_id: string;
   date: string;
   weekday: string;
-  routine_entry_id: string;
-  routine_time_label: string;
+  routine_entry_id: string | null;
+  routine_time_label: string | null;
   title: string;
   description: string | null;
   category: string | null;
@@ -72,8 +72,8 @@ export function mapTodoRow(row: TodoRow): Todo {
     userId: row.user_id,
     date: row.date,
     weekday: row.weekday,
-    routineEntryId: row.routine_entry_id,
-    routineTimeLabel: row.routine_time_label,
+    routineEntryId: row.routine_entry_id ?? undefined,
+    routineTimeLabel: row.routine_time_label ?? undefined,
     title: row.title,
     description: row.description || undefined,
     category: row.category as TodoCategory || undefined,
@@ -92,6 +92,7 @@ export function todoToRow(todo: Todo): Partial<TodoRow> {
   if (typeof todo.userId !== 'undefined') row.user_id = todo.userId;
   if (typeof todo.date !== 'undefined') row.date = todo.date;
   if (typeof todo.weekday !== 'undefined') row.weekday = todo.weekday;
+  // Only include routine fields when present (free todos omit them)
   if (typeof todo.routineEntryId !== 'undefined') row.routine_entry_id = todo.routineEntryId;
   if (typeof todo.routineTimeLabel !== 'undefined') row.routine_time_label = todo.routineTimeLabel;
   if (typeof todo.title !== 'undefined') row.title = todo.title;
