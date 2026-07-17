@@ -814,12 +814,68 @@ a {
     height: 10px;
   }
 
+  /* Cells are interactive (tap/click) */
+  .heatmap-cell[role="button"] {
+    cursor: pointer;
+  }
+
+  /* Tapped cell ring — visible on mobile after tap */
+  .heatmap-cell.tapped {
+    outline: 2px solid var(--accent, #6366f1);
+    outline-offset: 1px;
+  }
+
+  /* Tap-to-reveal info bar (mobile tooltip replacement) */
+  .heatmap-tap-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: var(--surface-soft, #f1f5f9);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    animation: fadeIn 0.15s ease;
+  }
+
+  .heatmap-tap-date {
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+  }
+
+  .heatmap-tap-detail {
+    color: var(--muted, #64748b);
+    flex: 1;
+  }
+
+  .heatmap-tap-dismiss {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted, #64748b);
+    font-size: 0.85rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+    line-height: 1;
+  }
+
+  .heatmap-tap-dismiss:hover {
+    color: var(--text-primary, #1e293b);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
   @media (max-width: 640px) {
     .heatmap-header {
       flex-direction: column;
       align-items: flex-start;
     }
   }
+
 
   .summary-card,
   .streak-card,

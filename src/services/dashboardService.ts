@@ -74,7 +74,12 @@ export interface HeatmapCell {
 const HEATMAP_WINDOW_DAYS = 371;
 
 function buildDateKey(date: Date) {
-  return date.toISOString().slice(0, 10);
+  // Use LOCAL date parts so the key matches how dates are stored (YYYY-MM-DD in local time).
+  // toISOString() is UTC-based and shifts the date for any UTC+ timezone.
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 function buildDateTime(date: string, time: string) {
