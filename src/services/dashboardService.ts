@@ -232,10 +232,10 @@ export function getDashboardSummary(routineEntries: RoutineEntry[], todos: Todo[
   const notStartedTodos = allDayTodos.filter((todo) => todo.completionPercentage === 0).length;
   const missedTodos = timelineRows.filter((item) => item.status === 'Missed').length;
   const totalTodos = allDayTodos.length;
-  const sumPercentage = timelineRows.reduce((sum, row) => sum + row.completionPercentage, 0)
-    + freeTodos.reduce((sum, t) => sum + t.completionPercentage, 0);
-  const denominator = timelineRows.length + freeTodos.length;
-  const overallCompletionPercentage = denominator > 0 ? Math.round(sumPercentage / denominator) : 0;
+  // Average completion across actual todos only — matches the heatmap calculation in buildDailyCompletionMap.
+  // Excluding empty routine slots (0%) from the denominator keeps the dashboard and heatmap consistent.
+  const allDaySum = allDayTodos.reduce((sum, t) => sum + (t.completionPercentage || 0), 0);
+  const overallCompletionPercentage = totalTodos > 0 ? Math.round(allDaySum / totalTodos) : 0;
 
   return {
     selectedDate,

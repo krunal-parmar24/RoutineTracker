@@ -1,7 +1,6 @@
 import type { Todo } from '../types/todo';
 import { TODO_CATEGORIES } from '../types/todo';
 import type { RoutineEntry } from '../types/routine';
-import { getTimelineRows } from './dashboardService';
 
 export interface DayOfWeekTrend {
   day: string;
@@ -32,7 +31,7 @@ export interface InsightsReport {
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-export function generateInsightsReport(todos: Todo[], routineEntries: RoutineEntry[]): InsightsReport {
+export function generateInsightsReport(todos: Todo[], _routineEntries: RoutineEntry[]): InsightsReport {
   // ── Day of Week Trends ────────────────────────────────────────────────────
   const dayStats = new Map<string, { total: number; completed: number }>();
   DAYS_OF_WEEK.forEach((day) => dayStats.set(day, { total: 0, completed: 0 }));
@@ -57,10 +56,12 @@ export function generateInsightsReport(todos: Todo[], routineEntries: RoutineEnt
       const dateStr = `${y}-${m}-${d}`;
       const weekdayStr = current.toLocaleDateString('en-US', { weekday: 'long' });
 
-      // Routine-slotted todos via timeline rows
-      const timelineRows = getTimelineRows(routineEntries, todos, dateStr);
-      const timelineSumPercentage = timelineRows.reduce((sum, row) => sum + row.completionPercentage, 0);
-      const timelineCount = timelineRows.length;
+      // Todos with a routine slot for this date (only those that actually exist, not empty slots)
+      const routineTodosForDate = todos.filter(
+        (t) => t.date === dateStr && t.routineEntryId && !t.rescheduledToDate,
+      );
+      const routineSumPercentage = routineTodosForDate.reduce((sum, t) => sum + (t.completionPercentage || 0), 0);
+      const routineCount = routineTodosForDate.length;
 
       // Free todos for this date (no routine slot, not a tombstone)
       const freeTodosForDate = todos.filter(
@@ -69,8 +70,9 @@ export function generateInsightsReport(todos: Todo[], routineEntries: RoutineEnt
       const freeSumPercentage = freeTodosForDate.reduce((sum, t) => sum + (t.completionPercentage || 0), 0);
       const freeCount = freeTodosForDate.length;
 
-      const totalCount = timelineCount + freeCount;
-      const totalSumPercentage = timelineSumPercentage + freeSumPercentage;
+      // Use actual todo count as denominator \u2014 matches heatmap and dashboard calculation
+      const totalCount = routineCount + freeCount;
+      const totalSumPercentage = routineSumPercentage + freeSumPercentage;
 
       if (totalCount > 0) {
         const stat = dayStats.get(weekdayStr)!;
